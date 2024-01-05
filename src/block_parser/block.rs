@@ -1,6 +1,6 @@
 use crate::block_parser::entry::ParsedEntry;
-use ton_block::{Block, BlockIdExt, BlockProof, ShardStateUnsplit};
-use ton_types::Cell;
+use tvm_block::{Block, BlockIdExt, BlockProof, ShardStateUnsplit};
+use tvm_types::Cell;
 
 pub struct ParsedBlock {
     pub block: Option<ParsedEntry>,

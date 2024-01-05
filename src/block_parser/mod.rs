@@ -2,18 +2,18 @@ mod accounts;
 mod block;
 mod entry;
 mod parser;
-mod transactions;
 mod reducers;
+mod transactions;
 
 use serde_json::{Map, Value};
 use std::time::{Duration, SystemTime};
-use ton_block::{MsgAddrStd, MsgAddressInt};
-use ton_types::{Result, SliceData, UInt256};
+use tvm_block::{MsgAddrStd, MsgAddressInt};
+use tvm_types::{Result, SliceData, UInt256};
 
 pub use block::{ParsedBlock, ParsingBlock};
 pub use entry::ParsedEntry;
 pub use parser::{BlockParser, BlockParserConfig, EntryConfig};
-pub use reducers::{JsonFieldsReducer};
+pub use reducers::JsonFieldsReducer;
 
 #[derive(Debug, failure::Fail)]
 pub enum BlockParsingError {

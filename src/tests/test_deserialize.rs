@@ -15,13 +15,13 @@
  */
 
 use super::*;
-use crate::{serialize_config, SerializationMode, serialize_config_param};
-use ton_block::{
-    ConfigParam3, ConfigParam32, ConfigParam33, ConfigParam35, ConfigParam36, ConfigParam37,
-    ConfigParam39, ConfigParam4, ConfigParam6, ConfigVotingSetup, DelectorParams, Number16,
-    SigPubKey, VarUInteger32, ConfigCopyleft,
+use crate::{serialize_config, serialize_config_param, SerializationMode};
+use tvm_block::{
+    ConfigCopyleft, ConfigParam3, ConfigParam32, ConfigParam33, ConfigParam35, ConfigParam36,
+    ConfigParam37, ConfigParam39, ConfigParam4, ConfigParam6, ConfigVotingSetup, DelectorParams,
+    Number16, SigPubKey, VarUInteger32,
 };
-use ton_types::{BuilderData, IBitstring};
+use tvm_types::{BuilderData, IBitstring};
 
 include!("./test_common.rs");
 
@@ -36,7 +36,10 @@ fn test_parse_zerostate() {
 
 fn check_err<T: std::fmt::Debug>(result: Result<T>, text: &str) {
     let len = text.len();
-    assert_eq!(&result.expect_err("must generate error").to_string()[0..len], text)
+    assert_eq!(
+        &result.expect_err("must generate error").to_string()[0..len],
+        text
+    )
 }
 
 #[test]
@@ -65,31 +68,42 @@ fn test_parse_errors() {
     check_err(map.get_vec("obj"), "root/obj must be the vector");
     let obj = map.get_obj("obj").unwrap();
     check_err(obj.get_obj("a1"), "root/obj/a1 must be the object");
-    check_err(obj.get_num("a1"), "root/obj/a1 must be the integer or a string with the integer");
-    check_err(obj.get_num("a2"), "root/obj/a2 must be the integer or a string with the integer");
-    check_err(obj.get_num("a3"), "root/obj/a3 must be the integer or a string with the integer");
+    check_err(
+        obj.get_num("a1"),
+        "root/obj/a1 must be the integer or a string with the integer",
+    );
+    check_err(
+        obj.get_num("a2"),
+        "root/obj/a2 must be the integer or a string with the integer",
+    );
+    check_err(
+        obj.get_num("a3"),
+        "root/obj/a3 must be the integer or a string with the integer",
+    );
 }
 
 fn get_config_param0() -> ConfigParam0 {
     let mut c = ConfigParam0::new();
-    c.config_addr = UInt256::from([1;32]);
+    c.config_addr = UInt256::from([1; 32]);
     c
 }
 
 fn get_config_param1() -> ConfigParam1 {
     let mut c = ConfigParam1::new();
-    c.elector_addr = UInt256::from([1;32]);
+    c.elector_addr = UInt256::from([1; 32]);
     c
 }
 
 fn get_config_param7() -> ConfigParam7 {
     let mut ecc = ExtraCurrencyCollection::default();
     for i in 1..100 {
-        ecc.set(&(i as u32), &VarUInteger32::from_two_u128(i * 100, i * 205).unwrap()).unwrap();
+        ecc.set(
+            &(i as u32),
+            &VarUInteger32::from_two_u128(i * 100, i * 205).unwrap(),
+        )
+        .unwrap();
     }
-    ConfigParam7 {
-        to_mint: ecc,
-    }
+    ConfigParam7 { to_mint: ecc }
 }
 
 fn get_config_param16() -> ConfigParam16 {
@@ -227,7 +241,7 @@ fn get_config_param9() -> ConfigParam9 {
         mp.set(&i, &()).unwrap();
     }
     ConfigParam9 {
-        mandatory_params: mp
+        mandatory_params: mp,
     }
 }
 
@@ -237,7 +251,7 @@ fn get_config_param10() -> ConfigParam10 {
         cp.set(&i, &()).unwrap();
     }
     ConfigParam10 {
-        critical_params: cp
+        critical_params: cp,
     }
 }
 
@@ -246,7 +260,7 @@ fn get_config_param14() -> ConfigParam14 {
         block_create_fees: BlockCreateFees {
             masterchain_block_fee: Grams::from(1458347523u64),
             basechain_block_fee: Grams::from(145800000000003u64),
-        }
+        },
     }
 }
 
@@ -271,22 +285,22 @@ fn get_config_param29() -> ConfigParam29 {
             catchain_max_deps: 60,
             max_block_bytes: 70,
             max_collated_bytes: 80,
-        }
+        },
     }
 }
 
 fn get_config_param40() -> ConfigParam40 {
     ConfigParam40 {
         slashing_config: SlashingConfig {
-            slashing_period_mc_blocks_count : 10,
-            resend_mc_blocks_count : 20,
-            min_samples_count : 30,
-            collations_score_weight : 40,
-            signing_score_weight : 50,
-            min_slashing_protection_score : 60,
-            z_param_numerator : 70,
-            z_param_denominator : 80,
-        }
+            slashing_period_mc_blocks_count: 10,
+            resend_mc_blocks_count: 20,
+            min_samples_count: 30,
+            collations_score_weight: 40,
+            signing_score_weight: 50,
+            min_slashing_protection_score: 60,
+            z_param_numerator: 70,
+            z_param_denominator: 80,
+        },
     }
 }
 
@@ -312,7 +326,7 @@ fn get_block_limits(some_val: u32) -> BlockLimits {
     BlockLimits::with_limits(
         ParamLimits::with_limits(some_val + 1, some_val + 2, some_val + 3).unwrap(),
         ParamLimits::with_limits(some_val + 4, some_val + 5, some_val + 6).unwrap(),
-        ParamLimits::with_limits(some_val + 7, some_val + 8, some_val + 9).unwrap()
+        ParamLimits::with_limits(some_val + 7, some_val + 8, some_val + 9).unwrap(),
     )
 }
 
@@ -320,22 +334,28 @@ fn get_config_param_39() -> ConfigParam39 {
     let mut cp = ConfigParam39::default();
 
     let vstk = ValidatorSignedTempKey::construct_from_base64("te6ccgEBAgEAlAABgwRQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgKAEAmgMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA46BJ4rNcGUgnAwuWyQw+RaHbPRm6ub11xlYhzyXOQiirgIdZgABiJRdJFss").unwrap();
-    cp.insert(&UInt256::from([1;32]), &vstk).unwrap();
+    cp.insert(&UInt256::from([1; 32]), &vstk).unwrap();
 
     let vstk = ValidatorSignedTempKey::construct_from_base64("te6ccgEBAgEAlAABgwRQYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBgYGBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBweAEAmgMICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICI6BJ4obim1cCeb6yST1ojiep2h7raTYuNUkJEbwlPIjN4qOLAAHoYRdJF8U").unwrap();
-    cp.insert(&UInt256::from([1;32]), &vstk).unwrap();
+    cp.insert(&UInt256::from([1; 32]), &vstk).unwrap();
 
     cp
 }
 
 fn get_validator_set() -> ValidatorSet {
-    let mut list = vec!();
+    let mut list = vec![];
 
-    let key = SigPubKey::from_bytes(&*base64::decode("39MLqLIVrzLqPCHCFpbn1/jILSbfNMtnr/7zOkKE1Ds=").unwrap()).unwrap();
+    let key = SigPubKey::from_bytes(
+        &*base64::decode("39MLqLIVrzLqPCHCFpbn1/jILSbfNMtnr/7zOkKE1Ds=").unwrap(),
+    )
+    .unwrap();
     let vd = ValidatorDescr::with_params(key, 4, None, None);
     list.push(vd);
 
-    let key = SigPubKey::from_bytes(&*base64::decode("BIYYOFHTgVDIFzVLhuSZw2ne1J3zuv75zwYhAXb0+iY=").unwrap()).unwrap();
+    let key = SigPubKey::from_bytes(
+        &*base64::decode("BIYYOFHTgVDIFzVLhuSZw2ne1J3zuv75zwYhAXb0+iY=").unwrap(),
+    )
+    .unwrap();
     let vd = ValidatorDescr::with_params(key, 5, None, None);
     list.push(vd);
 
@@ -351,33 +371,40 @@ fn prepare_config_params() -> ConfigParams {
     let c1 = ConfigParamEnum::ConfigParam1(get_config_param1());
     cp.set_config(c1).unwrap();
 
-    let c2 = ConfigParamEnum::ConfigParam2(ConfigParam2 { minter_addr: UInt256::from([123;32]) });
+    let c2 = ConfigParamEnum::ConfigParam2(ConfigParam2 {
+        minter_addr: UInt256::from([123; 32]),
+    });
     cp.set_config(c2).unwrap();
 
-    let c3 = ConfigParamEnum::ConfigParam3(ConfigParam3 { fee_collector_addr: UInt256::from([133;32]) });
+    let c3 = ConfigParamEnum::ConfigParam3(ConfigParam3 {
+        fee_collector_addr: UInt256::from([133; 32]),
+    });
     cp.set_config(c3).unwrap();
 
-    let c4 = ConfigParamEnum::ConfigParam4(ConfigParam4 { dns_root_addr: UInt256::from([144;32]) });
+    let c4 = ConfigParamEnum::ConfigParam4(ConfigParam4 {
+        dns_root_addr: UInt256::from([144; 32]),
+    });
     cp.set_config(c4).unwrap();
 
-    let c5 = ConfigParamEnum::ConfigParam5(ConfigParam5 { owner_addr: UInt256::from([200;32]) });
+    let c5 = ConfigParamEnum::ConfigParam5(ConfigParam5 {
+        owner_addr: UInt256::from([200; 32]),
+    });
     cp.set_config(c5).unwrap();
 
-    let c6 = ConfigParamEnum::ConfigParam6(
-        ConfigParam6 {
-            mint_new_price: Grams::from(123u64),
-            mint_add_price: Grams::from(1458347523u64),
-        });
+    let c6 = ConfigParamEnum::ConfigParam6(ConfigParam6 {
+        mint_new_price: Grams::from(123u64),
+        mint_add_price: Grams::from(1458347523u64),
+    });
     cp.set_config(c6).unwrap();
 
     let c7 = ConfigParamEnum::ConfigParam7(get_config_param7());
     cp.set_config(c7).unwrap();
 
     let c8 = ConfigParamEnum::ConfigParam8(ConfigParam8 {
-        global_version: GlobalVersion{
+        global_version: GlobalVersion {
             version: 123,
             capabilities: 4567890,
-        }
+        },
     });
     cp.set_config(c8).unwrap();
 
@@ -395,7 +422,9 @@ fn prepare_config_params() -> ConfigParams {
 
     let mut builder = BuilderData::new();
     builder.append_u32(100).unwrap();
-    let c13 = ConfigParamEnum::ConfigParam13(ConfigParam13{cell: builder.into_cell().unwrap()});
+    let c13 = ConfigParamEnum::ConfigParam13(ConfigParam13 {
+        cell: builder.into_cell().unwrap(),
+    });
     cp.set_config(c13).unwrap();
 
     let c14 = ConfigParamEnum::ConfigParam14(get_config_param14());
@@ -439,10 +468,10 @@ fn prepare_config_params() -> ConfigParams {
     let c29 = ConfigParamEnum::ConfigParam29(get_config_param29());
     cp.set_config(c29).unwrap();
 
-    let c30 = ConfigParamEnum::ConfigParam30(DelectorParams{
+    let c30 = ConfigParamEnum::ConfigParam30(DelectorParams {
         delections_step: 10,
         validator_init_code_hash: UInt256::rand(),
-        staker_init_code_hash: UInt256::rand()
+        staker_init_code_hash: UInt256::rand(),
     });
     cp.set_config(c30).unwrap();
 
@@ -491,7 +520,6 @@ fn prepare_config_params() -> ConfigParams {
 
 #[test]
 fn test_config_params() {
-
     let cp = prepare_config_params();
 
     let check_params = |old: &ConfigParams, new: &ConfigParams| {
@@ -535,7 +563,7 @@ fn test_parse_config_params() {
 #[test]
 fn test_parse_block_proof() {
     let boc = include_bytes!("data/block_proof");
-    let ethalon_proof = ton_block::BlockProof::construct_from_bytes(boc).unwrap();
+    let ethalon_proof = tvm_block::BlockProof::construct_from_bytes(boc).unwrap();
     let json = serde_json::from_str(include_str!("data/proof-ethalon.json")).unwrap();
 
     let parsed_proof = parse_block_proof(&json, ethalon_proof.proof_for.file_hash.clone()).unwrap();
