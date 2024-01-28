@@ -1,28 +1,25 @@
-/*
- * Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
- *
- * Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at:
- *
- * https://www.ton.dev/licenses
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific TON DEV software governing permissions and limitations
- * under the License.
- */
+// Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at:
+//
+// https://www.ton.dev/licenses
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
+
+use serde_json::json;
 
 use super::*;
 use crate::block_parser::reducers::JsonFieldsReducer;
-use serde_json::json;
 
 #[test]
 fn test_config_parser() {
-    let minimal = ReduceConfig {
-        fields: vec![Field::Scalar("a".to_owned())],
-    };
+    let minimal = ReduceConfig { fields: vec![Field::Scalar("a".to_owned())] };
     assert_eq!(ReduceConfig::parse_str("{ a }").unwrap(), minimal.clone());
 
     assert_eq!(
@@ -121,18 +118,12 @@ fn test_reducer() {
     .clone();
 
     assert_eq!(
-        JsonFieldsReducer::with_config("{a}")
-            .unwrap()
-            .reduce(json.clone())
-            .unwrap(),
+        JsonFieldsReducer::with_config("{a}").unwrap().reduce(json.clone()).unwrap(),
         json!({ "a": true }).as_object().unwrap().clone()
     );
 
     assert_eq!(
-        JsonFieldsReducer::with_config("b")
-            .unwrap()
-            .reduce(json.clone())
-            .unwrap(),
+        JsonFieldsReducer::with_config("b").unwrap().reduce(json.clone()).unwrap(),
         json!({
             "b": {
                 "c": 123
@@ -165,18 +156,12 @@ fn test_reducer() {
     );
 
     assert_eq!(
-        JsonFieldsReducer::with_config("{ r { s } }")
-            .unwrap()
-            .reduce(json.clone())
-            .unwrap(),
+        JsonFieldsReducer::with_config("{ r { s } }").unwrap().reduce(json.clone()).unwrap(),
         json!({ "r": null }).as_object().unwrap().clone()
     );
 
     assert_eq!(
-        JsonFieldsReducer::with_config("{ z }")
-            .unwrap()
-            .reduce(json.clone())
-            .unwrap(),
+        JsonFieldsReducer::with_config("{ z }").unwrap().reduce(json.clone()).unwrap(),
         json!({}).as_object().unwrap().clone()
     );
 
@@ -202,10 +187,7 @@ fn test_reducer() {
     );
 
     assert_eq!(
-        JsonFieldsReducer::with_config("s t { a }")
-            .unwrap()
-            .reduce(json.clone())
-            .unwrap(),
+        JsonFieldsReducer::with_config("s t { a }").unwrap().reduce(json.clone()).unwrap(),
         json!({
             "s": [1, 2, 3],
             "t": [{"a": 123}, {"a": 456}],

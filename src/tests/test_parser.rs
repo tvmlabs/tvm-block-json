@@ -1,28 +1,34 @@
-/*
- * Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
- *
- * Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at:
- *
- * https://www.ton.dev/licenses
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific TON DEV software governing permissions and limitations
- * under the License.
- */
+// Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at:
+//
+// https://www.ton.dev/licenses
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
+
+use std::collections::HashMap;
+use std::fs::read;
+use std::path::Path;
+
+use serde_json::Map;
+use tvm_block::Block;
+use tvm_block::GetRepresentationHash;
+use tvm_block::InMsg;
+use tvm_block::OutMsg;
+use tvm_types::read_single_root_boc;
+use tvm_types::UInt256;
 
 use super::*;
 use crate::block_parser::reducers::JsonFieldsReducer;
 use crate::block_parser::MINTER_ADDRESS;
-use crate::{NoTrace, ParsedBlock};
-use serde_json::Map;
-use std::collections::HashMap;
-use std::{fs::read, path::Path};
-use tvm_block::{Block, GetRepresentationHash, InMsg, OutMsg};
-use tvm_types::{read_single_root_boc, UInt256};
+use crate::NoTrace;
+use crate::ParsedBlock;
 
 #[derive(Default)]
 pub struct ParseOptions {
@@ -35,18 +41,12 @@ pub struct ParseOptions {
 
 impl ParseOptions {
     fn mc_seq_no(self: Self, seq_no: u32) -> Self {
-        Self {
-            mc_seq_no: Some(seq_no),
-            ..self
-        }
+        Self { mc_seq_no: Some(seq_no), ..self }
     }
 
     fn sharding(self: Self, blocks: u32, transactions: u32, messages: u32) -> Self {
         fn config(depth: u32) -> Option<EntryConfig<JsonFieldsReducer>> {
-            Some(EntryConfig {
-                reducer: None,
-                sharding_depth: Some(depth),
-            })
+            Some(EntryConfig { reducer: None, sharding_depth: Some(depth) })
         }
         Self {
             blocks: config(blocks),
@@ -57,10 +57,7 @@ impl ParseOptions {
     }
 
     fn file_hash(self: Self, file_hash: UInt256) -> Self {
-        Self {
-            file_hash: Some(file_hash),
-            ..self
-        }
+        Self { file_hash: Some(file_hash), ..self }
     }
 }
 
@@ -92,16 +89,12 @@ fn parse_block(
             .unwrap_or_else(|| UInt256::calc_file_hash(&boc)),
     );
     let mc_seq_no = options.as_ref().map(|x| x.mc_seq_no).flatten();
-    let (blocks, transactions, messages) = options
-        .map(|x| (x.blocks, x.transactions, x.messages))
-        .unwrap_or((None, None, None));
+    let (blocks, transactions, messages) =
+        options.map(|x| (x.blocks, x.transactions, x.messages)).unwrap_or((None, None, None));
     fn entry_config(
         opt: Option<EntryConfig<JsonFieldsReducer>>,
     ) -> Option<EntryConfig<JsonFieldsReducer>> {
-        Some(opt.unwrap_or(EntryConfig {
-            reducer: None,
-            sharding_depth: None,
-        }))
+        Some(opt.unwrap_or(EntryConfig { reducer: None, sharding_depth: None }))
     }
 
     let parser = BlockParser::<NoTrace, JsonFieldsReducer>::new(
@@ -136,32 +129,19 @@ fn parse_block(
 #[test]
 fn test_transaction_code_hash() {
     println!("MA: {:?}", *MINTER_ADDRESS);
-    let (_, _, parsed) = parse_block(
-        "89ED400A43E76664437EFC9C79B84AC387493A9EE5E789338FF71C25F54218BE.boc",
-        None,
-    );
+    let (_, _, parsed) =
+        parse_block("89ED400A43E76664437EFC9C79B84AC387493A9EE5E789338FF71C25F54218BE.boc", None);
     fn has_code_hash(entry: &ParsedEntry, field: &str) -> bool {
-        entry
-            .body
-            .get(field)
-            .map(|x| x.as_str().map(|x| !x.is_empty()))
-            .flatten()
-            .unwrap_or(false)
+        entry.body.get(field).map(|x| x.as_str().map(|x| !x.is_empty())).flatten().unwrap_or(false)
     }
 
     for tr in &parsed.transactions {
-        assert!(
-            has_code_hash(&tr, "code_hash"),
-            "transaction should have code hash"
-        );
+        assert!(has_code_hash(&tr, "code_hash"), "transaction should have code hash");
     }
     for msg in &parsed.messages {
         let has_src_code_hash = has_code_hash(msg, "src_code_hash");
         let has_dst_code_hash = has_code_hash(msg, "dst_code_hash");
-        assert!(
-            has_src_code_hash || has_dst_code_hash,
-            "message should have src or dst code hash"
-        );
+        assert!(has_src_code_hash || has_dst_code_hash, "message should have src or dst code hash");
     }
     assert_eq!(
         parsed.block.unwrap().id,
@@ -171,11 +151,9 @@ fn test_transaction_code_hash() {
 
 #[test]
 fn test_parse_block() {
-    //crate::init_logger(None);
-    let (raw_block, block_id, parsed) = parse_block(
-        "3FAFAAB7B5D17E439CD9DDEF7EEC3C3BC9D28E7C181BA374218E13599F8F6657.boc",
-        None,
-    );
+    // crate::init_logger(None);
+    let (raw_block, block_id, parsed) =
+        parse_block("3FAFAAB7B5D17E439CD9DDEF7EEC3C3BC9D28E7C181BA374218E13599F8F6657.boc", None);
 
     let block: Block = Block::construct_from_bytes(&raw_block).unwrap();
     let block_extra = block.read_extra().unwrap();
@@ -196,11 +174,8 @@ fn test_parse_block() {
     // Block
     check_parsed_entry(parsed.block.unwrap().clone(), block_id.clone());
 
-    let mut messages: HashMap<String, ParsedEntry> = parsed
-        .messages
-        .into_iter()
-        .map(|parsed| (parsed.id.clone(), parsed))
-        .collect();
+    let mut messages: HashMap<String, ParsedEntry> =
+        parsed.messages.into_iter().map(|parsed| (parsed.id.clone(), parsed)).collect();
     // Messages
     block_extra
         .read_in_msg_descr()
@@ -232,10 +207,7 @@ fn test_parse_block() {
     assert_eq!(messages.len(), 0);
 
     let mut transactions = HashMap::<UInt256, ParsedEntry>::from_iter(
-        parsed
-            .transactions
-            .into_iter()
-            .map(|entry| (entry.id.parse().unwrap(), entry)),
+        parsed.transactions.into_iter().map(|entry| (entry.id.parse().unwrap(), entry)),
     );
 
     // Transactions
@@ -260,11 +232,9 @@ fn test_parse_block() {
 
 #[test]
 fn test_parse_mc_block() {
-    //crate::init_logger(None);
-    let (_, _, parsed) = parse_block(
-        "a9c07ece30e9b4fc446b8262a206dcd25a7c5c0b47f38fd3264d3031d739f9c3.boc",
-        None,
-    );
+    // crate::init_logger(None);
+    let (_, _, parsed) =
+        parse_block("a9c07ece30e9b4fc446b8262a206dcd25a7c5c0b47f38fd3264d3031d739f9c3.boc", None);
 
     assert_eq!(parsed.messages.len(), 1);
     assert_eq!(parsed.transactions.len(), 5);
@@ -276,11 +246,9 @@ fn test_parse_mc_block() {
 
 #[test]
 fn test_parse_fast_finality_block() {
-    //crate::init_logger(None);
-    let (_, _, parsed) = parse_block(
-        "6a3e3e4ca5d6f6e158bfc9a9e473b67145a6280e93786609565bd1ad31fc4d65.boc",
-        None,
-    );
+    // crate::init_logger(None);
+    let (_, _, parsed) =
+        parse_block("6a3e3e4ca5d6f6e158bfc9a9e473b67145a6280e93786609565bd1ad31fc4d65.boc", None);
 
     assert_eq!(parsed.messages.len(), 1);
     assert_eq!(parsed.transactions.len(), 3);
@@ -322,37 +290,15 @@ fn test_mc_chain_order() {
         Some(ParseOptions::default().mc_seq_no(8631080)),
     );
 
-    check_chain_order(
-        &parsed.block.unwrap().body,
-        &block_id.to_hex_string(),
-        "583b328m",
-    );
+    check_chain_order(&parsed.block.unwrap().body, &block_id.to_hex_string(), "583b328m");
 
     let mut transaction_orders = vec![
-        (
-            "110251141556a08a7d5718bfc6c3d9b9811f2cdf4ff3b156ac3a6f57b8201391",
-            "583b328m00",
-        ),
-        (
-            "589e6b6e5052dbefd525a5589dc50ec789c8b9241cfc2b258c222643d4657527",
-            "583b328m01",
-        ),
-        (
-            "f84d8a663284c28c7ccafc7db4f7ebc32b1b9cd25ce029ab9be940ba1ba6ec08",
-            "583b328m02",
-        ),
-        (
-            "0c9c38178cb4c931c715b1909d4e7f96aafc427e05a2c0d0c2bdcf75ade9e8a0",
-            "583b328m03",
-        ),
-        (
-            "3fc28a93c16cea6e0bdc3b0eba497e911cc9b7d421e8284314db2b14a730c1da",
-            "583b328m04",
-        ),
-        (
-            "2b0c0f1de578d352190328a4bfb2a1f8875c1f05a837e8abc154993c152bd240",
-            "583b328m05",
-        ),
+        ("110251141556a08a7d5718bfc6c3d9b9811f2cdf4ff3b156ac3a6f57b8201391", "583b328m00"),
+        ("589e6b6e5052dbefd525a5589dc50ec789c8b9241cfc2b258c222643d4657527", "583b328m01"),
+        ("f84d8a663284c28c7ccafc7db4f7ebc32b1b9cd25ce029ab9be940ba1ba6ec08", "583b328m02"),
+        ("0c9c38178cb4c931c715b1909d4e7f96aafc427e05a2c0d0c2bdcf75ade9e8a0", "583b328m03"),
+        ("3fc28a93c16cea6e0bdc3b0eba497e911cc9b7d421e8284314db2b14a730c1da", "583b328m04"),
+        ("2b0c0f1de578d352190328a4bfb2a1f8875c1f05a837e8abc154993c152bd240", "583b328m05"),
     ];
 
     for transaction in parsed.transactions.into_iter().rev() {
@@ -388,21 +334,11 @@ fn test_wc_chain_order() {
         Some(ParseOptions::default().mc_seq_no(123)),
     );
 
-    check_chain_order(
-        &parsed.block.unwrap().body,
-        &block_id.to_hex_string(),
-        "17b0054702f3110",
-    );
+    check_chain_order(&parsed.block.unwrap().body, &block_id.to_hex_string(), "17b0054702f3110");
 
     let mut transaction_orders = vec![
-        (
-            "8d512de1f07239705972edf4a1d89837d9c2c8968bfec16b721ced94481a9058",
-            "17b0054702f311000",
-        ),
-        (
-            "f0f3750f451afbc6e5b0d93fc3446a20b2fcea24f948997b33aa8e9a5f99908b",
-            "17b0054702f311001",
-        ),
+        ("8d512de1f07239705972edf4a1d89837d9c2c8968bfec16b721ced94481a9058", "17b0054702f311000"),
+        ("f0f3750f451afbc6e5b0d93fc3446a20b2fcea24f948997b33aa8e9a5f99908b", "17b0054702f311001"),
     ];
 
     for transaction in parsed.transactions.into_iter().rev() {
@@ -635,10 +571,8 @@ fn check_field(body: &Map<String, Value>, pointer: &str, value: &Value) {
 
 #[test]
 fn test_file_hash() {
-    let (_, _, parsed) = parse_block(
-        "558651b80d5361fd7f31882d4df90bf8e3c0c58422684e752a47c6b57b7be62c.boc",
-        None,
-    );
+    let (_, _, parsed) =
+        parse_block("558651b80d5361fd7f31882d4df90bf8e3c0c58422684e752a47c6b57b7be62c.boc", None);
 
     check_field(
         &parsed.block.unwrap().body,
@@ -648,11 +582,7 @@ fn test_file_hash() {
 
     let (_, _, parsed) = parse_block(
         "558651b80d5361fd7f31882d4df90bf8e3c0c58422684e752a47c6b57b7be62c.boc",
-        Some(
-            ParseOptions::default()
-                .mc_seq_no(41)
-                .file_hash(UInt256::default()),
-        ),
+        Some(ParseOptions::default().mc_seq_no(41).file_hash(UInt256::default())),
     );
 
     check_field(
@@ -693,10 +623,8 @@ fn test_reduce_config() {
 
 #[test]
 fn test_transaction_id_in_msg() {
-    let (_, _, parsed) = parse_block(
-        "3FAFAAB7B5D17E439CD9DDEF7EEC3C3BC9D28E7C181BA374218E13599F8F6657.boc",
-        None,
-    );
+    let (_, _, parsed) =
+        parse_block("3FAFAAB7B5D17E439CD9DDEF7EEC3C3BC9D28E7C181BA374218E13599F8F6657.boc", None);
 
     let message_ethalons = HashMap::<&str, Value>::from_iter([
         (
@@ -717,19 +645,11 @@ fn test_transaction_id_in_msg() {
     for message in parsed.messages {
         let msg_ethalon = message_ethalons.get(message.id.as_str()).unwrap();
         assert_eq!(
-            message
-                .body
-                .get("src_transaction_id")
-                .unwrap_or(&Value::Null)
-                .clone(),
+            message.body.get("src_transaction_id").unwrap_or(&Value::Null).clone(),
             msg_ethalon["src_transaction_id"]
         );
         assert_eq!(
-            message
-                .body
-                .get("dst_transaction_id")
-                .unwrap_or(&Value::Null)
-                .clone(),
+            message.body.get("dst_transaction_id").unwrap_or(&Value::Null).clone(),
             msg_ethalon["dst_transaction_id"]
         );
     }

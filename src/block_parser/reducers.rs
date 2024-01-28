@@ -1,6 +1,9 @@
-use crate::{BlockParsingError, JsonReducer};
-use serde_json::{Map, Value};
+use serde_json::Map;
+use serde_json::Value;
 use tvm_types::Result;
+
+use crate::BlockParsingError;
+use crate::JsonReducer;
 
 #[derive(Clone, Debug, PartialEq)]
 enum Field {

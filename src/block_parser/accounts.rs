@@ -1,13 +1,30 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
+
+use tvm_block::Account;
+use tvm_block::ChildCell;
+use tvm_block::Serializable;
+use tvm_block::ShardAccounts;
+use tvm_block::Transaction;
+use tvm_types::fail;
+use tvm_types::write_boc;
+use tvm_types::AccountId;
+use tvm_types::BuilderData;
+use tvm_types::Cell;
+use tvm_types::ExceptionCode;
+use tvm_types::Result;
+use tvm_types::SliceData;
+use tvm_types::UInt256;
+
 use crate::block_parser::entry::get_sharding_depth;
 use crate::block_parser::get_partition;
-use crate::{
-    BlockParserConfig, BlockParsingError, EntryConfig, JsonReducer, ParsedBlock, ParsedEntry,
-    ParsingBlock,
-};
-use std::collections::{HashMap, HashSet};
-use tvm_block::{Account, ChildCell, Serializable, ShardAccounts, Transaction};
-use tvm_types::{fail, AccountId, Cell, ExceptionCode, SliceData, UInt256};
-use tvm_types::{write_boc, BuilderData, Result};
+use crate::BlockParserConfig;
+use crate::BlockParsingError;
+use crate::EntryConfig;
+use crate::JsonReducer;
+use crate::ParsedBlock;
+use crate::ParsedEntry;
+use crate::ParsingBlock;
 
 pub(crate) enum AccountTransition {
     None,
@@ -56,10 +73,7 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
     pub(crate) fn new(config: &'a BlockParserConfig<R>, parsing: &'a ParsingBlock) -> Result<Self> {
         let state_update = parsing.block.state_update.read_struct()?;
         let updates = if state_update.old_hash != state_update.new_hash {
-            Some((
-                read_accounts(state_update.old)?,
-                read_accounts(state_update.new)?,
-            ))
+            Some((read_accounts(state_update.old)?, read_accounts(state_update.new)?))
         } else {
             None
         };
@@ -153,8 +167,7 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
         chain_order: &Option<String>,
     ) -> Result<()> {
         if let Some(chain_order) = chain_order {
-            self.last_trans_chain_order
-                .insert(account_id.clone(), chain_order.clone());
+            self.last_trans_chain_order.insert(account_id.clone(), chain_order.clone());
         }
         let last_trans_lt =
             transaction.logical_time() + transaction.out_msgs.len().unwrap_or(0) as u64 + 1;
@@ -163,15 +176,13 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
     }
 
     pub(crate) fn get_code_hash(&self, account_id: &AccountId) -> Result<Option<String>> {
-        Ok(
-            if let Some(hash) = self.get_code_hash_from(UpdateSide::Old, account_id)? {
-                Some(hash.to_hex_string())
-            } else if let Some(hash) = self.get_code_hash_from(UpdateSide::New, account_id)? {
-                Some(hash.to_hex_string())
-            } else {
-                None
-            },
-        )
+        Ok(if let Some(hash) = self.get_code_hash_from(UpdateSide::Old, account_id)? {
+            Some(hash.to_hex_string())
+        } else if let Some(hash) = self.get_code_hash_from(UpdateSide::New, account_id)? {
+            Some(hash.to_hex_string())
+        } else {
+            None
+        })
     }
 
     fn get_code_hash_from(&self, source: UpdateSide, id: &AccountId) -> Result<Option<UInt256>> {
@@ -191,11 +202,7 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
                 return Ok(None);
             }
         }
-        Ok(if let Some(acc) = acc? {
-            acc.read_account()?.get_code_hash()
-        } else {
-            None
-        })
+        Ok(if let Some(acc) = acc? { acc.read_account()?.get_code_hash() } else { None })
     }
 
     pub(crate) fn prepare_account_entry(
@@ -210,17 +217,12 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
         let mut boc = vec![];
         let mut skip_data = false;
         if let Some(max_size) = max_account_bytes_size {
-            let size = account
-                .storage_info()
-                .map(|si| si.used().bits() / 8)
-                .unwrap_or_else(|| 0) as usize;
+            let size =
+                account.storage_info().map(|si| si.used().bits() / 8).unwrap_or_else(|| 0) as usize;
             if max_size < size {
                 log::warn!(
                     "Too big account ({}, {} bytes), skipped",
-                    account
-                        .get_addr()
-                        .map(|a| a.to_string())
-                        .unwrap_or_else(|| "unknown".into()),
+                    account.get_addr().map(|a| a.to_string()).unwrap_or_else(|| "unknown".into()),
                     size
                 );
                 skip_data = true;
@@ -252,10 +254,7 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
         let partition = get_partition(accounts_sharding_depth, account_id.clone())?;
         let mut doc = crate::db_serialize_account("id", &set)?;
         if let Some(last_trans_chain_order) = last_trans_chain_order {
-            doc.insert(
-                "last_trans_chain_order".to_owned(),
-                last_trans_chain_order.into(),
-            );
+            doc.insert("last_trans_chain_order".to_owned(), last_trans_chain_order.into());
         }
         ParsedEntry::reduced(doc.into(), partition, accounts_config)
     }
@@ -278,10 +277,7 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
 
         let mut doc = crate::db_serialize_deleted_account("id", &set)?;
         if let Some(last_trans_chain_order) = last_trans_chain_order {
-            doc.insert(
-                "last_trans_chain_order".to_owned(),
-                last_trans_chain_order.into(),
-            );
+            doc.insert("last_trans_chain_order".to_owned(), last_trans_chain_order.into());
         }
         if let Some(lt) = last_trans_lt {
             doc.insert("last_trans_lt".to_owned(), crate::u64_to_string(lt).into());

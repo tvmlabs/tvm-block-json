@@ -1,27 +1,39 @@
-/*
- * Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
- *
- * Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at:
- *
- * https://www.ton.dev/licenses
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific TON DEV software governing permissions and limitations
- * under the License.
- */
+// Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at:
+//
+// https://www.ton.dev/licenses
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
+
+use tvm_block::ConfigCopyleft;
+use tvm_block::ConfigParam3;
+use tvm_block::ConfigParam32;
+use tvm_block::ConfigParam33;
+use tvm_block::ConfigParam35;
+use tvm_block::ConfigParam36;
+use tvm_block::ConfigParam37;
+use tvm_block::ConfigParam39;
+use tvm_block::ConfigParam4;
+use tvm_block::ConfigParam6;
+use tvm_block::ConfigVotingSetup;
+use tvm_block::DelectorParams;
+use tvm_block::Number16;
+use tvm_block::SigPubKey;
+use tvm_block::VarUInteger32;
+use tvm_types::BuilderData;
+use tvm_types::IBitstring;
 
 use super::*;
-use crate::{serialize_config, serialize_config_param, SerializationMode};
-use tvm_block::{
-    ConfigCopyleft, ConfigParam3, ConfigParam32, ConfigParam33, ConfigParam35, ConfigParam36,
-    ConfigParam37, ConfigParam39, ConfigParam4, ConfigParam6, ConfigVotingSetup, DelectorParams,
-    Number16, SigPubKey, VarUInteger32,
-};
-use tvm_types::{BuilderData, IBitstring};
+use crate::serialize_config;
+use crate::serialize_config_param;
+use crate::SerializationMode;
 
 include!("./test_common.rs");
 
@@ -36,10 +48,7 @@ fn test_parse_zerostate() {
 
 fn check_err<T: std::fmt::Debug>(result: Result<T>, text: &str) {
     let len = text.len();
-    assert_eq!(
-        &result.expect_err("must generate error").to_string()[0..len],
-        text
-    )
+    assert_eq!(&result.expect_err("must generate error").to_string()[0..len], text)
 }
 
 #[test]
@@ -68,18 +77,9 @@ fn test_parse_errors() {
     check_err(map.get_vec("obj"), "root/obj must be the vector");
     let obj = map.get_obj("obj").unwrap();
     check_err(obj.get_obj("a1"), "root/obj/a1 must be the object");
-    check_err(
-        obj.get_num("a1"),
-        "root/obj/a1 must be the integer or a string with the integer",
-    );
-    check_err(
-        obj.get_num("a2"),
-        "root/obj/a2 must be the integer or a string with the integer",
-    );
-    check_err(
-        obj.get_num("a3"),
-        "root/obj/a3 must be the integer or a string with the integer",
-    );
+    check_err(obj.get_num("a1"), "root/obj/a1 must be the integer or a string with the integer");
+    check_err(obj.get_num("a2"), "root/obj/a2 must be the integer or a string with the integer");
+    check_err(obj.get_num("a3"), "root/obj/a3 must be the integer or a string with the integer");
 }
 
 fn get_config_param0() -> ConfigParam0 {
@@ -97,11 +97,7 @@ fn get_config_param1() -> ConfigParam1 {
 fn get_config_param7() -> ConfigParam7 {
     let mut ecc = ExtraCurrencyCollection::default();
     for i in 1..100 {
-        ecc.set(
-            &(i as u32),
-            &VarUInteger32::from_two_u128(i * 100, i * 205).unwrap(),
-        )
-        .unwrap();
+        ecc.set(&(i as u32), &VarUInteger32::from_two_u128(i * 100, i * 205).unwrap()).unwrap();
     }
     ConfigParam7 { to_mint: ecc }
 }
@@ -240,9 +236,7 @@ fn get_config_param9() -> ConfigParam9 {
     for i in 1..100 {
         mp.set(&i, &()).unwrap();
     }
-    ConfigParam9 {
-        mandatory_params: mp,
-    }
+    ConfigParam9 { mandatory_params: mp }
 }
 
 fn get_config_param10() -> ConfigParam10 {
@@ -250,9 +244,7 @@ fn get_config_param10() -> ConfigParam10 {
     for i in 1..100 {
         cp.set(&i, &()).unwrap();
     }
-    ConfigParam10 {
-        critical_params: cp,
-    }
+    ConfigParam10 { critical_params: cp }
 }
 
 fn get_config_param14() -> ConfigParam14 {
@@ -305,10 +297,8 @@ fn get_config_param40() -> ConfigParam40 {
 }
 
 fn get_config_param42() -> ConfigCopyleft {
-    let mut cfg = ConfigCopyleft {
-        copyleft_reward_threshold: 100.into(),
-        license_rates: Default::default(),
-    };
+    let mut cfg =
+        ConfigCopyleft { copyleft_reward_threshold: 100.into(), license_rates: Default::default() };
     for i in 0..10 {
         cfg.license_rates.set(&(i as u8), &(i * 10 as u8)).unwrap();
     }
@@ -371,9 +361,7 @@ fn prepare_config_params() -> ConfigParams {
     let c1 = ConfigParamEnum::ConfigParam1(get_config_param1());
     cp.set_config(c1).unwrap();
 
-    let c2 = ConfigParamEnum::ConfigParam2(ConfigParam2 {
-        minter_addr: UInt256::from([123; 32]),
-    });
+    let c2 = ConfigParamEnum::ConfigParam2(ConfigParam2 { minter_addr: UInt256::from([123; 32]) });
     cp.set_config(c2).unwrap();
 
     let c3 = ConfigParamEnum::ConfigParam3(ConfigParam3 {
@@ -381,14 +369,11 @@ fn prepare_config_params() -> ConfigParams {
     });
     cp.set_config(c3).unwrap();
 
-    let c4 = ConfigParamEnum::ConfigParam4(ConfigParam4 {
-        dns_root_addr: UInt256::from([144; 32]),
-    });
+    let c4 =
+        ConfigParamEnum::ConfigParam4(ConfigParam4 { dns_root_addr: UInt256::from([144; 32]) });
     cp.set_config(c4).unwrap();
 
-    let c5 = ConfigParamEnum::ConfigParam5(ConfigParam5 {
-        owner_addr: UInt256::from([200; 32]),
-    });
+    let c5 = ConfigParamEnum::ConfigParam5(ConfigParam5 { owner_addr: UInt256::from([200; 32]) });
     cp.set_config(c5).unwrap();
 
     let c6 = ConfigParamEnum::ConfigParam6(ConfigParam6 {
@@ -401,10 +386,7 @@ fn prepare_config_params() -> ConfigParams {
     cp.set_config(c7).unwrap();
 
     let c8 = ConfigParamEnum::ConfigParam8(ConfigParam8 {
-        global_version: GlobalVersion {
-            version: 123,
-            capabilities: 4567890,
-        },
+        global_version: GlobalVersion { version: 123, capabilities: 4567890 },
     });
     cp.set_config(c8).unwrap();
 
@@ -422,9 +404,7 @@ fn prepare_config_params() -> ConfigParams {
 
     let mut builder = BuilderData::new();
     builder.append_u32(100).unwrap();
-    let c13 = ConfigParamEnum::ConfigParam13(ConfigParam13 {
-        cell: builder.into_cell().unwrap(),
-    });
+    let c13 = ConfigParamEnum::ConfigParam13(ConfigParam13 { cell: builder.into_cell().unwrap() });
     cp.set_config(c13).unwrap();
 
     let c14 = ConfigParamEnum::ConfigParam14(get_config_param14());

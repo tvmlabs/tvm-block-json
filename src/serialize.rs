@@ -1,29 +1,37 @@
-/*
- * Copyright (C) 2019-2022 TON Labs. All Rights Reserved.
- *
- * Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at:
- *
- * https://www.ton.dev/licenses
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific TON DEV software governing permissions and limitations
- * under the License.
- */
+// Copyright (C) 2019-2022 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at:
+//
+// https://www.ton.dev/licenses
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
+
+use std::collections::HashMap;
 
 use num::BigInt;
 use num_traits::sign::Signed;
-use serde_json::{Map, Value};
-use std::collections::HashMap;
-use tvm_api::ton::ton_node::{RempMessageLevel, RempMessageStatus, RempReceipt};
+use serde_json::Map;
+use serde_json::Value;
+use tvm_api::ton::ton_node::RempMessageLevel;
+use tvm_api::ton::ton_node::RempMessageStatus;
+use tvm_api::ton::ton_node::RempReceipt;
 use tvm_block::*;
-use tvm_types::{
-    fail, read_single_root_boc, write_boc, AccountId, BuilderData, Cell, HashmapType, Result,
-    SliceData, UInt256,
-};
+use tvm_types::fail;
+use tvm_types::read_single_root_boc;
+use tvm_types::write_boc;
+use tvm_types::AccountId;
+use tvm_types::BuilderData;
+use tvm_types::Cell;
+use tvm_types::HashmapType;
+use tvm_types::Result;
+use tvm_types::SliceData;
+use tvm_types::UInt256;
 
 const VERSION: u32 = 8;
 // Version changes
@@ -61,26 +69,19 @@ struct SignedCurrencyCollection {
 
 impl SignedCurrencyCollection {
     pub fn new() -> Self {
-        SignedCurrencyCollection {
-            grams: 0.into(),
-            other: HashMap::new(),
-        }
+        SignedCurrencyCollection { grams: 0.into(), other: HashMap::new() }
     }
 
     pub fn from_cc(cc: &CurrencyCollection) -> Result<Self> {
         let mut other = HashMap::new();
-        cc.other_as_hashmap()
-            .iterate_slices(|ref mut key, ref mut value| -> Result<bool> {
-                let key = key.get_next_u32()?;
-                let value = VarUInteger32::construct_from(value)?;
-                other.insert(key, value.value().clone());
-                Ok(true)
-            })?;
+        cc.other_as_hashmap().iterate_slices(|ref mut key, ref mut value| -> Result<bool> {
+            let key = key.get_next_u32()?;
+            let value = VarUInteger32::construct_from(value)?;
+            other.insert(key, value.value().clone());
+            Ok(true)
+        })?;
 
-        Ok(SignedCurrencyCollection {
-            grams: cc.grams.as_u128().into(),
-            other,
-        })
+        Ok(SignedCurrencyCollection { grams: cc.grams.as_u128().into(), other })
     }
 
     pub fn add(&mut self, other: &Self) {
@@ -127,12 +128,7 @@ pub fn u64_to_string(value: u64) -> String {
 
 pub fn bigint_to_string(value: &BigInt) -> String {
     if num::bigint::Sign::Minus == value.sign() {
-        let bytes: Vec<u8> = value
-            .to_bytes_be()
-            .1
-            .iter()
-            .map(|byte| byte ^ 0xFF)
-            .collect();
+        let bytes: Vec<u8> = value.to_bytes_be().1.iter().map(|byte| byte ^ 0xFF).collect();
         let string = hex::encode(bytes).trim_start_matches('f').to_owned();
         format!("-{:02x}{}", (string.len() - 1) ^ 0xFF, string)
     } else {
@@ -327,12 +323,7 @@ fn serialize_storage_phase<'a>(
 ) -> Option<&'a Grams> {
     if let Some(ph) = ph {
         let mut ph_map = serde_json::Map::new();
-        serialize_grams(
-            &mut ph_map,
-            "storage_fees_collected",
-            &ph.storage_fees_collected,
-            mode,
-        );
+        serialize_grams(&mut ph_map, "storage_fees_collected", &ph.storage_fees_collected, mode);
         if let Some(grams) = &ph.storage_fees_due {
             serialize_grams(&mut ph_map, "storage_fees_due", grams, mode);
         }
@@ -397,19 +388,10 @@ fn serialize_compute_phase<'a>(
             }
             ph_map.insert("mode".to_string(), ph.mode.into());
             ph_map.insert("exit_code".to_string(), ph.exit_code.into());
-            ph.exit_arg
-                .map(|value| ph_map.insert("exit_arg".to_string(), value.into()));
+            ph.exit_arg.map(|value| ph_map.insert("exit_arg".to_string(), value.into()));
             ph_map.insert("vm_steps".to_string(), ph.vm_steps.into());
-            serialize_id(
-                &mut ph_map,
-                "vm_init_state_hash",
-                Some(&ph.vm_init_state_hash),
-            );
-            serialize_id(
-                &mut ph_map,
-                "vm_final_state_hash",
-                Some(&ph.vm_final_state_hash),
-            );
+            serialize_id(&mut ph_map, "vm_init_state_hash", Some(&ph.vm_init_state_hash));
+            serialize_id(&mut ph_map, "vm_final_state_hash", Some(&ph.vm_final_state_hash));
             (1, "vm")
         }
         None => return None,
@@ -463,24 +445,14 @@ fn serialize_action_phase<'a>(
         }
         let fees = ph.total_action_fees.as_ref();
         ph_map.insert("result_code".to_string(), ph.result_code.into());
-        ph.result_arg
-            .map(|value| ph_map.insert("result_arg".to_string(), value.into()));
+        ph.result_arg.map(|value| ph_map.insert("result_arg".to_string(), value.into()));
         ph_map.insert("tot_actions".to_string(), ph.tot_actions.into());
         ph_map.insert("spec_actions".to_string(), ph.spec_actions.into());
         ph_map.insert("skipped_actions".to_string(), ph.skipped_actions.into());
         ph_map.insert("msgs_created".to_string(), ph.msgs_created.into());
-        ph_map.insert(
-            "action_list_hash".to_string(),
-            ph.action_list_hash.as_hex_string().into(),
-        );
-        ph_map.insert(
-            "tot_msg_size_cells".to_string(),
-            ph.tot_msg_size.cells().into(),
-        );
-        ph_map.insert(
-            "tot_msg_size_bits".to_string(),
-            ph.tot_msg_size.bits().into(),
-        );
+        ph_map.insert("action_list_hash".to_string(), ph.action_list_hash.as_hex_string().into());
+        ph_map.insert("tot_msg_size_cells".to_string(), ph.tot_msg_size.cells().into());
+        ph_map.insert("tot_msg_size_bits".to_string(), ph.tot_msg_size.bits().into());
         serialize_field(map, "action", ph_map);
         fees
     } else {
@@ -617,20 +589,12 @@ fn serialize_in_msg(msg: &InMsg, mode: SerializationMode) -> Result<Value> {
     let (type_, type_name) = match msg {
         InMsg::External(msg) => {
             serialize_id(&mut map, "msg_id", Some(&msg.message_cell().repr_hash()));
-            serialize_id(
-                &mut map,
-                "transaction_id",
-                Some(&msg.transaction_cell().repr_hash()),
-            );
+            serialize_id(&mut map, "transaction_id", Some(&msg.transaction_cell().repr_hash()));
             (0, "external")
         }
         InMsg::IHR(msg) => {
             serialize_id(&mut map, "msg_id", Some(&msg.message_cell().repr_hash()));
-            serialize_id(
-                &mut map,
-                "transaction_id",
-                Some(&msg.transaction_cell().repr_hash()),
-            );
+            serialize_id(&mut map, "transaction_id", Some(&msg.transaction_cell().repr_hash()));
             serialize_grams(&mut map, "ihr_fee", msg.ihr_fee(), mode);
             serialize_cell(&mut map, "proof_created", Some(msg.proof_created()), false)?;
             (1, "ihr")
@@ -640,11 +604,7 @@ fn serialize_in_msg(msg: &InMsg, mode: SerializationMode) -> Result<Value> {
                 "in_msg".to_string(),
                 serialize_envelope_msg(&msg.read_envelope_message()?, mode).into(),
             );
-            serialize_id(
-                &mut map,
-                "transaction_id",
-                Some(&msg.transaction_cell().repr_hash()),
-            );
+            serialize_id(&mut map, "transaction_id", Some(&msg.transaction_cell().repr_hash()));
             serialize_grams(&mut map, "fwd_fee", &msg.fwd_fee, mode);
             (2, "immediately")
         }
@@ -653,11 +613,7 @@ fn serialize_in_msg(msg: &InMsg, mode: SerializationMode) -> Result<Value> {
                 "in_msg".to_string(),
                 serialize_envelope_msg(&msg.read_envelope_message()?, mode).into(),
             );
-            serialize_id(
-                &mut map,
-                "transaction_id",
-                Some(&msg.transaction_cell().repr_hash()),
-            );
+            serialize_id(&mut map, "transaction_id", Some(&msg.transaction_cell().repr_hash()));
             serialize_grams(&mut map, "fwd_fee", &msg.fwd_fee, mode);
             (3, "final")
         }
@@ -689,12 +645,7 @@ fn serialize_in_msg(msg: &InMsg, mode: SerializationMode) -> Result<Value> {
             );
             serialize_u64(&mut map, "transaction_id", &msg.transaction_id(), mode);
             serialize_grams(&mut map, "fwd_fee", msg.fwd_fee(), mode);
-            serialize_cell(
-                &mut map,
-                "proof_delivered",
-                Some(msg.proof_delivered()),
-                false,
-            )?;
+            serialize_cell(&mut map, "proof_delivered", Some(msg.proof_delivered()), false)?;
             (6, "discardedTransit")
         }
         _ => (-1, "none"),
@@ -711,11 +662,7 @@ fn serialize_out_msg(msg: &OutMsg, mode: SerializationMode) -> Result<Value> {
     let (type_, type_name) = match msg {
         OutMsg::External(msg) => {
             serialize_id(&mut map, "msg_id", Some(&msg.message_cell().repr_hash()));
-            serialize_id(
-                &mut map,
-                "transaction_id",
-                Some(&msg.transaction_cell().repr_hash()),
-            );
+            serialize_id(&mut map, "transaction_id", Some(&msg.transaction_cell().repr_hash()));
             (0, "external")
         }
         OutMsg::Immediate(msg) => {
@@ -723,11 +670,7 @@ fn serialize_out_msg(msg: &OutMsg, mode: SerializationMode) -> Result<Value> {
                 "out_msg".to_string(),
                 serialize_envelope_msg(&msg.read_out_message()?, mode).into(),
             );
-            serialize_id(
-                &mut map,
-                "transaction_id",
-                Some(&msg.transaction_cell().repr_hash()),
-            );
+            serialize_id(&mut map, "transaction_id", Some(&msg.transaction_cell().repr_hash()));
             map.insert(
                 "reimport".to_string(),
                 serialize_in_msg(&msg.read_reimport_message()?, mode)?,
@@ -739,11 +682,7 @@ fn serialize_out_msg(msg: &OutMsg, mode: SerializationMode) -> Result<Value> {
                 "out_msg".to_string(),
                 serialize_envelope_msg(&msg.read_out_message()?, mode).into(),
             );
-            serialize_id(
-                &mut map,
-                "transaction_id",
-                Some(&msg.transaction_cell().repr_hash()),
-            );
+            serialize_id(&mut map, "transaction_id", Some(&msg.transaction_cell().repr_hash()));
             (2, "outMsgNew")
         }
         OutMsg::Transit(msg) => {
@@ -751,10 +690,7 @@ fn serialize_out_msg(msg: &OutMsg, mode: SerializationMode) -> Result<Value> {
                 "out_msg".to_string(),
                 serialize_envelope_msg(&msg.read_out_message()?, mode).into(),
             );
-            map.insert(
-                "imported".to_string(),
-                serialize_in_msg(&msg.read_imported()?, mode)?,
-            );
+            map.insert("imported".to_string(), serialize_in_msg(&msg.read_imported()?, mode)?);
             (3, "transit")
         }
         OutMsg::DequeueImmediate(msg) => {
@@ -781,19 +717,13 @@ fn serialize_out_msg(msg: &OutMsg, mode: SerializationMode) -> Result<Value> {
                 "out_msg".to_string(),
                 serialize_envelope_msg(&msg.read_out_message()?, mode).into(),
             );
-            map.insert(
-                "imported".to_string(),
-                serialize_in_msg(&msg.read_imported()?, mode)?,
-            );
+            map.insert("imported".to_string(), serialize_in_msg(&msg.read_imported()?, mode)?);
             (6, "transitRequeued")
         }
         OutMsg::DequeueShort(msg) => {
             serialize_id(&mut map, "msg_env_hash", Some(&msg.msg_env_hash));
             map.insert("next_workchain".to_string(), msg.next_workchain.into());
-            map.insert(
-                "next_addr_pfx".to_string(),
-                shard_to_string(msg.next_addr_pfx).into(),
-            );
+            map.insert("next_addr_pfx".to_string(), shard_to_string(msg.next_addr_pfx).into());
             if let SerializationMode::Debug = mode {
                 map.insert(
                     "next_prefix".to_string(),
@@ -827,28 +757,18 @@ fn serialize_shard_descr(descr: &ShardDescr, mode: SerializationMode) -> Result<
     serialize_field(&mut map, "nx_cc_updated", descr.nx_cc_updated);
     serialize_field(&mut map, "gen_utime", descr.gen_utime);
     serialize_field(&mut map, "next_catchain_seqno", descr.next_catchain_seqno);
-    serialize_field(
-        &mut map,
-        "next_validator_shard",
-        shard_to_string(descr.next_validator_shard),
-    );
+    serialize_field(&mut map, "next_validator_shard", shard_to_string(descr.next_validator_shard));
     serialize_field(&mut map, "min_ref_mc_seqno", descr.min_ref_mc_seqno);
     serialize_field(&mut map, "flags", descr.flags);
     serialize_cc(&mut map, "fees_collected", &descr.fees_collected, mode)?;
     serialize_cc(&mut map, "funds_created", &descr.funds_created, mode)?;
     serialize_copyleft_rewards(&mut map, "copyleft_rewards", &descr.copyleft_rewards, mode)?;
     match descr.split_merge_at {
-        FutureSplitMerge::Split {
-            split_utime,
-            interval,
-        } => {
+        FutureSplitMerge::Split { split_utime, interval } => {
             serialize_field(&mut map, "split_utime", split_utime);
             serialize_field(&mut map, "split_interval", interval);
         }
-        FutureSplitMerge::Merge {
-            merge_utime,
-            interval,
-        } => {
+        FutureSplitMerge::Merge { merge_utime, interval } => {
             serialize_field(&mut map, "merge_utime", merge_utime);
             serialize_field(&mut map, "merge_interval", interval);
         }
@@ -1037,15 +957,13 @@ fn serialize_copyleft_param(
 ) -> Result<()> {
     serialize_grams(map, "threshold", &copyleft.copyleft_reward_threshold, mode);
     let mut vector = Vec::<Value>::new();
-    copyleft
-        .license_rates
-        .iterate_with_keys(|key: u8, val| -> Result<bool> {
-            let mut map = Map::new();
-            serialize_field(&mut map, "license_type", key);
-            serialize_field(&mut map, "payout_percent", val);
-            vector.push(Value::from(map));
-            Ok(true)
-        })?;
+    copyleft.license_rates.iterate_with_keys(|key: u8, val| -> Result<bool> {
+        let mut map = Map::new();
+        serialize_field(&mut map, "license_type", key);
+        serialize_field(&mut map, "payout_percent", val);
+        vector.push(Value::from(map));
+        Ok(true)
+    })?;
     serialize_field(map, "payouts", vector);
     Ok(())
 }
@@ -1103,12 +1021,7 @@ pub fn serialize_known_config_param(
         }
         ConfigParamEnum::ConfigParam8(ref c) => {
             serialize_field(&mut map, "version", c.global_version.version);
-            serialize_u64(
-                &mut map,
-                "capabilities",
-                &c.global_version.capabilities,
-                mode,
-            );
+            serialize_u64(&mut map, "capabilities", &c.global_version.capabilities, mode);
         }
         ConfigParamEnum::ConfigParam9(ref c) => {
             return Ok(Some(serialize_mandatory_params(&c.mandatory_params)?));
@@ -1157,11 +1070,7 @@ pub fn serialize_known_config_param(
         }
         ConfigParamEnum::ConfigParam16(ref c) => {
             serialize_field(&mut map, "max_validators", c.max_validators.as_u32());
-            serialize_field(
-                &mut map,
-                "max_main_validators",
-                c.max_main_validators.as_u32(),
-            );
+            serialize_field(&mut map, "max_main_validators", c.max_main_validators.as_u32());
             serialize_field(&mut map, "min_validators", c.min_validators.as_u32());
         }
         ConfigParamEnum::ConfigParam17(ref c) => {
@@ -1195,29 +1104,13 @@ pub fn serialize_known_config_param(
             serialize_field(&mut map, "shuffle_mc_validators", c.shuffle_mc_validators);
             serialize_field(&mut map, "isolate_mc_validators", c.isolate_mc_validators);
             serialize_field(&mut map, "mc_catchain_lifetime", c.mc_catchain_lifetime);
-            serialize_field(
-                &mut map,
-                "shard_catchain_lifetime",
-                c.shard_catchain_lifetime,
-            );
-            serialize_field(
-                &mut map,
-                "shard_validators_lifetime",
-                c.shard_validators_lifetime,
-            );
+            serialize_field(&mut map, "shard_catchain_lifetime", c.shard_catchain_lifetime);
+            serialize_field(&mut map, "shard_validators_lifetime", c.shard_validators_lifetime);
             serialize_field(&mut map, "shard_validators_num", c.shard_validators_num);
         }
         ConfigParamEnum::ConfigParam29(ref c) => {
-            serialize_field(
-                &mut map,
-                "new_catchain_ids",
-                c.consensus_config.new_catchain_ids,
-            );
-            serialize_field(
-                &mut map,
-                "round_candidates",
-                c.consensus_config.round_candidates,
-            );
+            serialize_field(&mut map, "new_catchain_ids", c.consensus_config.new_catchain_ids);
+            serialize_field(&mut map, "round_candidates", c.consensus_config.round_candidates);
             serialize_field(
                 &mut map,
                 "next_candidate_delay_ms",
@@ -1229,40 +1122,18 @@ pub fn serialize_known_config_param(
                 c.consensus_config.consensus_timeout_ms,
             );
             serialize_field(&mut map, "fast_attempts", c.consensus_config.fast_attempts);
-            serialize_field(
-                &mut map,
-                "attempt_duration",
-                c.consensus_config.attempt_duration,
-            );
-            serialize_field(
-                &mut map,
-                "catchain_max_deps",
-                c.consensus_config.catchain_max_deps,
-            );
-            serialize_field(
-                &mut map,
-                "max_block_bytes",
-                c.consensus_config.max_block_bytes,
-            );
-            serialize_field(
-                &mut map,
-                "max_collated_bytes",
-                c.consensus_config.max_collated_bytes,
-            );
+            serialize_field(&mut map, "attempt_duration", c.consensus_config.attempt_duration);
+            serialize_field(&mut map, "catchain_max_deps", c.consensus_config.catchain_max_deps);
+            serialize_field(&mut map, "max_block_bytes", c.consensus_config.max_block_bytes);
+            serialize_field(&mut map, "max_collated_bytes", c.consensus_config.max_collated_bytes);
         }
         ConfigParamEnum::ConfigParam30(ref c) => {
             serialize_field(&mut map, "delections_step", c.delections_step);
             serialize_uint256(&mut map, "staker_init_code_hash", &c.staker_init_code_hash);
-            serialize_uint256(
-                &mut map,
-                "validator_init_code_hash",
-                &c.validator_init_code_hash,
-            );
+            serialize_uint256(&mut map, "validator_init_code_hash", &c.validator_init_code_hash);
         }
         ConfigParamEnum::ConfigParam31(ref c) => {
-            return Ok(Some(serialize_fundamental_smc_addresses(
-                &c.fundamental_smc_addr,
-            )?));
+            return Ok(Some(serialize_fundamental_smc_addresses(&c.fundamental_smc_addr)?));
         }
         ConfigParamEnum::ConfigParam32(ref c) => {
             serialize_validators_set(&mut map, &c.prev_validators, mode)?;
@@ -1283,9 +1154,7 @@ pub fn serialize_known_config_param(
             serialize_validators_set(&mut map, &c.next_temp_validators, mode)?;
         }
         ConfigParamEnum::ConfigParam39(ref c) => {
-            return Ok(Some(serialize_validator_signed_temp_keys(
-                &c.validator_keys,
-            )?));
+            return Ok(Some(serialize_validator_signed_temp_keys(&c.validator_keys)?));
         }
         ConfigParamEnum::ConfigParam40(ref c) => {
             serialize_field(
@@ -1298,11 +1167,7 @@ pub fn serialize_known_config_param(
                 "resend_mc_blocks_count",
                 c.slashing_config.resend_mc_blocks_count,
             );
-            serialize_field(
-                &mut map,
-                "min_samples_count",
-                c.slashing_config.min_samples_count,
-            );
+            serialize_field(&mut map, "min_samples_count", c.slashing_config.min_samples_count);
             serialize_field(
                 &mut map,
                 "collations_score_weight",
@@ -1318,16 +1183,8 @@ pub fn serialize_known_config_param(
                 "min_slashing_protection_score",
                 c.slashing_config.min_slashing_protection_score,
             );
-            serialize_field(
-                &mut map,
-                "z_param_numerator",
-                c.slashing_config.z_param_numerator,
-            );
-            serialize_field(
-                &mut map,
-                "z_param_denominator",
-                c.slashing_config.z_param_denominator,
-            );
+            serialize_field(&mut map, "z_param_numerator", c.slashing_config.z_param_numerator);
+            serialize_field(&mut map, "z_param_denominator", c.slashing_config.z_param_denominator);
         }
         ConfigParamEnum::ConfigParam42(ref c) => {
             serialize_copyleft_param(&mut map, c, mode)?;
@@ -1405,19 +1262,17 @@ pub fn serialize_config(
     serialize_id(map, "config_addr", Some(&config.config_addr));
     let mut known_cp_map = Map::new();
     let mut unknown_cp_vec = Vec::new();
-    config
-        .config_params
-        .iterate_slices(|mut num, mut cp_ref| -> Result<bool> {
-            //println!("key {}", num);
-            let num = num.get_next_u32()?;
-            let mut cp = SliceData::load_cell(cp_ref.checked_drain_reference()?)?;
-            if let Some(cp) = serialize_known_config_param(num, &mut cp.clone(), mode)? {
-                known_cp_map.insert(format!("p{}", num), cp);
-            } else {
-                unknown_cp_vec.push(serialize_unknown_config_param(num, &mut cp)?);
-            }
-            Ok(true)
-        })?;
+    config.config_params.iterate_slices(|mut num, mut cp_ref| -> Result<bool> {
+        // println!("key {}", num);
+        let num = num.get_next_u32()?;
+        let mut cp = SliceData::load_cell(cp_ref.checked_drain_reference()?)?;
+        if let Some(cp) = serialize_known_config_param(num, &mut cp.clone(), mode)? {
+            known_cp_map.insert(format!("p{}", num), cp);
+        } else {
+            unknown_cp_vec.push(serialize_unknown_config_param(num, &mut cp)?);
+        }
+        Ok(true)
+    })?;
     serialize_field(map, "config", known_cp_map);
     if !unknown_cp_vec.is_empty() {
         serialize_field(map, "unknown_config", unknown_cp_vec);
@@ -1442,17 +1297,15 @@ fn serialize_block_create_stats(
     mode: SerializationMode,
 ) -> Result<()> {
     let mut counters = Vec::new();
-    stats
-        .counters
-        .iterate_slices_with_keys(|ref mut key, ref mut value| -> Result<bool> {
-            let value = CreatorStats::construct_from(value)?;
-            counters.push(serde_json::json!({
-                "public_key": format!("{:x}", key),
-                "mc_blocks": serialize_counters(value.mc_blocks(), mode),
-                "shard_blocks": serialize_counters(value.shard_blocks(), mode),
-            }));
-            Ok(true)
-        })?;
+    stats.counters.iterate_slices_with_keys(|ref mut key, ref mut value| -> Result<bool> {
+        let value = CreatorStats::construct_from(value)?;
+        counters.push(serde_json::json!({
+            "public_key": format!("{:x}", key),
+            "mc_blocks": serialize_counters(value.mc_blocks(), mode),
+            "shard_blocks": serialize_counters(value.shard_blocks(), mode),
+        }));
+        Ok(true)
+    })?;
     map.insert(id_str.to_string(), counters.into());
     Ok(())
 }
@@ -1498,12 +1351,10 @@ fn serialize_libraries(
     libraries.iterate_slices_with_keys(|ref mut key, ref mut value| -> Result<bool> {
         let value = LibDescr::construct_from(value)?;
         let mut publishers = Vec::new();
-        value
-            .publishers()
-            .iterate_slices_with_keys(|ref mut key, _| -> Result<bool> {
-                publishers.push(key.as_hex_string());
-                Ok(true)
-            })?;
+        value.publishers().iterate_slices_with_keys(|ref mut key, _| -> Result<bool> {
+            publishers.push(key.as_hex_string());
+            Ok(true)
+        })?;
 
         libraries_vec.push(serde_json::json!({
             "hash": key.as_hex_string(),
@@ -1523,56 +1374,42 @@ fn serialize_out_msg_queue_info(
     mode: SerializationMode,
 ) -> Result<()> {
     let mut out_queue = Vec::new();
-    info.out_queue()
-        .iterate_with_keys(&mut |ref mut key: OutMsgQueueKey,
-                                 value: EnqueuedMsg|
-         -> Result<bool> {
-            let mut msg_map = serialize_envelope_msg(&value.read_out_msg()?, mode);
-            msg_map.insert("dest_workchain".to_string(), key.workchain_id.into());
-            msg_map.insert(
-                "dest_addr_prefix".to_string(),
-                shard_to_string(key.prefix).into(),
-            );
-            serialize_lt(&mut msg_map, "enqueued_lt", &value.enqueued_lt(), mode);
-            out_queue.push(msg_map);
-            Ok(true)
-        })?;
+    info.out_queue().iterate_with_keys(&mut |ref mut key: OutMsgQueueKey,
+                                              value: EnqueuedMsg|
+     -> Result<bool> {
+        let mut msg_map = serialize_envelope_msg(&value.read_out_msg()?, mode);
+        msg_map.insert("dest_workchain".to_string(), key.workchain_id.into());
+        msg_map.insert("dest_addr_prefix".to_string(), shard_to_string(key.prefix).into());
+        serialize_lt(&mut msg_map, "enqueued_lt", &value.enqueued_lt(), mode);
+        out_queue.push(msg_map);
+        Ok(true)
+    })?;
 
     let mut proc_info = Vec::new();
-    info.proc_info()
-        .iterate_slices_with_keys(&mut |mut key: SliceData,
-                                        mut value: SliceData|
-         -> Result<bool> {
-            let mut processed_map = Map::new();
-            let value = ProcessedUpto::construct_from(&mut value)?;
-            processed_map.insert(
-                "shard".to_string(),
-                shard_to_string(key.get_next_u64()?).into(),
-            );
-            processed_map.insert("mc_seqno".to_string(), key.get_next_u32()?.into());
-            serialize_lt(&mut processed_map, "last_msg_lt", &value.last_msg_lt, mode);
-            processed_map.insert(
-                "last_msg_hash".to_string(),
-                value.last_msg_hash.as_hex_string().into(),
-            );
-            proc_info.push(processed_map);
-            Ok(true)
-        })?;
+    info.proc_info().iterate_slices_with_keys(&mut |mut key: SliceData,
+                                                     mut value: SliceData|
+     -> Result<bool> {
+        let mut processed_map = Map::new();
+        let value = ProcessedUpto::construct_from(&mut value)?;
+        processed_map.insert("shard".to_string(), shard_to_string(key.get_next_u64()?).into());
+        processed_map.insert("mc_seqno".to_string(), key.get_next_u32()?.into());
+        serialize_lt(&mut processed_map, "last_msg_lt", &value.last_msg_lt, mode);
+        processed_map
+            .insert("last_msg_hash".to_string(), value.last_msg_hash.as_hex_string().into());
+        proc_info.push(processed_map);
+        Ok(true)
+    })?;
 
     let mut ihr_pending = Vec::new();
-    info.ihr_pending()
-        .iterate_slices_with_keys(|ref mut key, ref mut value| -> Result<bool> {
-            let value = IhrPendingSince::construct_from(value)?;
-            let mut ihr_map = Map::new();
-            ihr_map.insert(
-                "dest_addr_prefix".to_string(),
-                shard_to_string(key.get_next_u64()?).into(),
-            );
-            ihr_map.insert("msg_id".to_string(), format!("{:x}", key).into());
-            serialize_lt(&mut ihr_map, "import_lt", &value.import_lt(), mode);
-            ihr_pending.push(ihr_map);
-            Ok(true)
-        })?;
+    info.ihr_pending().iterate_slices_with_keys(|ref mut key, ref mut value| -> Result<bool> {
+        let value = IhrPendingSince::construct_from(value)?;
+        let mut ihr_map = Map::new();
+        ihr_map.insert("dest_addr_prefix".to_string(), shard_to_string(key.get_next_u64()?).into());
+        ihr_map.insert("msg_id".to_string(), format!("{:x}", key).into());
+        serialize_lt(&mut ihr_map, "import_lt", &value.import_lt(), mode);
+        ihr_pending.push(ihr_map);
+        Ok(true)
+    })?;
 
     map.insert(
         id_str.to_string(),
@@ -1600,18 +1437,11 @@ fn serialize_mc_state_extra(
         "validator_list_hash_short",
         master.validator_info.validator_list_hash_short,
     );
-    serialize_field(
-        &mut master_map,
-        "catchain_seqno",
-        master.validator_info.catchain_seqno,
-    );
-    serialize_field(
-        &mut master_map,
-        "nx_cc_updated",
-        master.validator_info.nx_cc_updated,
-    );
+    serialize_field(&mut master_map, "catchain_seqno", master.validator_info.catchain_seqno);
+    serialize_field(&mut master_map, "nx_cc_updated", master.validator_info.nx_cc_updated);
     // `prev_blocks` field is quite huge and not useful. Don't need to serialize it
-    //serialize_field(&mut master_map, "prev_blocks", serialize_old_mc_blocks_info(&master.prev_blocks, mode)?);
+    // serialize_field(&mut master_map, "prev_blocks",
+    // serialize_old_mc_blocks_info(&master.prev_blocks, mode)?);
     serialize_field(&mut master_map, "after_key_block", master.after_key_block);
     if let Some(block_ref) = &master.last_key_block {
         serialize_field(
@@ -1623,12 +1453,7 @@ fn serialize_mc_state_extra(
     if let Some(stats) = &master.block_create_stats {
         serialize_block_create_stats(&mut master_map, "block_create_stats", stats, mode)?;
     }
-    serialize_cc(
-        &mut master_map,
-        "global_balance",
-        &master.global_balance,
-        mode,
-    )?;
+    serialize_cc(&mut master_map, "global_balance", &master.global_balance, mode)?;
     serialize_copyleft_rewards(
         &mut master_map,
         "state_copyleft_rewards",
@@ -1799,68 +1624,36 @@ pub fn db_serialize_block_ex<'a>(
     map.insert("want_split".to_string(), block_info.want_split().into());
     map.insert("want_merge".to_string(), block_info.want_merge().into());
     map.insert("key_block".to_string(), block_info.key_block().into());
-    map.insert(
-        "vert_seqno_incr".to_string(),
-        block_info.vert_seqno_incr().into(),
-    );
+    map.insert("vert_seqno_incr".to_string(), block_info.vert_seqno_incr().into());
     map.insert("seq_no".to_string(), block_info.seq_no().into());
     map.insert("vert_seq_no".to_string(), block_info.vert_seq_no().into());
-    map.insert(
-        "gen_utime".to_string(),
-        block_info.gen_utime().as_u32().into(),
-    );
+    map.insert("gen_utime".to_string(), block_info.gen_utime().as_u32().into());
     serialize_lt(&mut map, "start_lt", &block_info.start_lt(), mode);
     serialize_lt(&mut map, "end_lt", &block_info.end_lt(), mode);
     map.insert(
         "gen_validator_list_hash_short".to_string(),
         block_info.gen_validator_list_hash_short().into(),
     );
-    map.insert(
-        "gen_catchain_seqno".to_string(),
-        block_info.gen_catchain_seqno().into(),
-    );
-    map.insert(
-        "min_ref_mc_seqno".to_string(),
-        block_info.min_ref_mc_seqno().into(),
-    );
-    map.insert(
-        "prev_key_block_seqno".to_string(),
-        block_info.prev_key_block_seqno().into(),
-    );
-    map.insert(
-        "workchain_id".to_string(),
-        block_info.shard().workchain_id().into(),
-    );
-    map.insert(
-        "shard".to_string(),
-        block_info.shard().shard_prefix_as_str_with_tag().into(),
-    );
+    map.insert("gen_catchain_seqno".to_string(), block_info.gen_catchain_seqno().into());
+    map.insert("min_ref_mc_seqno".to_string(), block_info.min_ref_mc_seqno().into());
+    map.insert("prev_key_block_seqno".to_string(), block_info.prev_key_block_seqno().into());
+    map.insert("workchain_id".to_string(), block_info.shard().workchain_id().into());
+    map.insert("shard".to_string(), block_info.shard().shard_prefix_as_str_with_tag().into());
 
     if let Some(gs) = block_info.gen_software() {
         serialize_field(&mut map, "gen_software_version", gs.version);
-        serialize_u64(
-            &mut map,
-            "gen_software_capabilities",
-            &gs.capabilities,
-            mode,
-        );
+        serialize_u64(&mut map, "gen_software_capabilities", &gs.capabilities, mode);
     }
 
     let prev_block_ref = block_info.read_prev_ref()?;
-    map.insert(
-        "prev_seq_no".to_string(),
-        prev_block_ref.prev1()?.seq_no.into(),
-    );
+    map.insert("prev_seq_no".to_string(), prev_block_ref.prev1()?.seq_no.into());
 
     let (vert_prev1, vert_prev2) = match &block_info.read_prev_vert_ref()? {
         Some(blk) => (Some(blk.prev1()?), blk.prev2()?),
         None => (None, None),
     };
     [
-        (
-            "master_ref",
-            block_info.read_master_ref()?.map(|blk| blk.master),
-        ),
+        ("master_ref", block_info.read_master_ref()?.map(|blk| blk.master)),
         ("prev_ref", Some(prev_block_ref.prev1()?)),
         ("prev_alt_ref", prev_block_ref.prev2()?),
         ("prev_vert_ref", vert_prev1),
@@ -1874,27 +1667,12 @@ pub fn db_serialize_block_ex<'a>(
     });
     let value_flow = set.block.read_value_flow()?;
     let mut value_map = Map::new();
-    serialize_cc(
-        &mut value_map,
-        "from_prev_blk",
-        &value_flow.from_prev_blk,
-        mode,
-    )?;
+    serialize_cc(&mut value_map, "from_prev_blk", &value_flow.from_prev_blk, mode)?;
     serialize_cc(&mut value_map, "to_next_blk", &value_flow.to_next_blk, mode)?;
     serialize_cc(&mut value_map, "imported", &value_flow.imported, mode)?;
     serialize_cc(&mut value_map, "exported", &value_flow.exported, mode)?;
-    serialize_cc(
-        &mut value_map,
-        "fees_collected",
-        &value_flow.fees_collected,
-        mode,
-    )?;
-    serialize_cc(
-        &mut value_map,
-        "fees_imported",
-        &value_flow.fees_imported,
-        mode,
-    )?;
+    serialize_cc(&mut value_map, "fees_collected", &value_flow.fees_collected, mode)?;
+    serialize_cc(&mut value_map, "fees_imported", &value_flow.fees_imported, mode)?;
     serialize_cc(&mut value_map, "recovered", &value_flow.recovered, mode)?;
     serialize_cc(&mut value_map, "created", &value_flow.created, mode)?;
     serialize_cc(&mut value_map, "minted", &value_flow.minted, mode)?;
@@ -1928,36 +1706,30 @@ pub fn db_serialize_block_ex<'a>(
     map.insert("out_msg_descr".to_string(), msgs.into());
     let mut total_tr_count = 0;
     let mut account_blocks = Vec::new();
-    extra
-        .read_account_blocks()?
-        .iterate_objects(|account_block| {
-            let workchain = block_info.shard().workchain_id();
-            let address = construct_address(workchain, account_block.account_addr())?;
+    extra.read_account_blocks()?.iterate_objects(|account_block| {
+        let workchain = block_info.shard().workchain_id();
+        let address = construct_address(workchain, account_block.account_addr())?;
+        let mut map = Map::new();
+        serialize_field(&mut map, "account_addr", address.to_string());
+        let mut transactions = Vec::new();
+        account_block.transaction_iterate_full(|key, transaction_cell, cc| {
             let mut map = Map::new();
-            serialize_field(&mut map, "account_addr", address.to_string());
-            let mut transactions = Vec::new();
-            account_block.transaction_iterate_full(|key, transaction_cell, cc| {
-                let mut map = Map::new();
-                serialize_lt(&mut map, "lt", &key, mode);
-                serialize_id(
-                    &mut map,
-                    "transaction_id",
-                    Some(&transaction_cell.repr_hash()),
-                );
-                serialize_cc(&mut map, "total_fees", &cc, mode)?;
-                transactions.push(map);
-                Ok(true)
-            })?;
-            serialize_field(&mut map, "transactions", transactions);
-            let state_update = account_block.read_state_update()?;
-            serialize_id(&mut map, "old_hash", Some(&state_update.old_hash));
-            serialize_id(&mut map, "new_hash", Some(&state_update.new_hash));
-            let tr_count = account_block.transaction_count()?;
-            serialize_field(&mut map, "tr_count", tr_count);
-            account_blocks.push(map);
-            total_tr_count += tr_count;
+            serialize_lt(&mut map, "lt", &key, mode);
+            serialize_id(&mut map, "transaction_id", Some(&transaction_cell.repr_hash()));
+            serialize_cc(&mut map, "total_fees", &cc, mode)?;
+            transactions.push(map);
             Ok(true)
         })?;
+        serialize_field(&mut map, "transactions", transactions);
+        let state_update = account_block.read_state_update()?;
+        serialize_id(&mut map, "old_hash", Some(&state_update.old_hash));
+        serialize_id(&mut map, "new_hash", Some(&state_update.new_hash));
+        let tr_count = account_block.transaction_count()?;
+        serialize_field(&mut map, "tr_count", tr_count);
+        account_blocks.push(map);
+        total_tr_count += tr_count;
+        Ok(true)
+    })?;
     if !account_blocks.is_empty() {
         serialize_field(&mut map, "account_blocks", account_blocks);
     }
@@ -1992,10 +1764,7 @@ pub fn db_serialize_block_ex<'a>(
         })?;
         master_map.insert("prev_blk_signatures".to_string(), crypto_signs.into());
         if let Some(msg) = &master.read_recover_create_msg()? {
-            master_map.insert(
-                "recover_create_msg".to_string(),
-                serialize_in_msg(msg, mode)?,
-            );
+            master_map.insert("recover_create_msg".to_string(), serialize_in_msg(msg, mode)?);
         }
         if let Some(msg) = &master.read_mint_msg()? {
             master_map.insert("mint_msg".to_string(), serialize_in_msg(msg, mode)?);
@@ -2173,17 +1942,8 @@ pub fn db_serialize_transaction_ex<'a>(
         serialize_field(&mut map, "tr_type_name", tr_type_name);
     }
     serialize_lt(&mut map, "lt", &set.transaction.logical_time(), mode);
-    serialize_id(
-        &mut map,
-        "prev_trans_hash",
-        Some(set.transaction.prev_trans_hash()),
-    );
-    serialize_lt(
-        &mut map,
-        "prev_trans_lt",
-        &set.transaction.prev_trans_lt(),
-        mode,
-    );
+    serialize_id(&mut map, "prev_trans_hash", Some(set.transaction.prev_trans_hash()));
+    serialize_lt(&mut map, "prev_trans_lt", &set.transaction.prev_trans_lt(), mode);
     serialize_field(&mut map, "now", set.transaction.now());
     serialize_field(&mut map, "outmsg_cnt", set.transaction.msg_count());
     serialize_account_status(&mut map, "orig_status", &set.transaction.orig_status, mode);
@@ -2197,20 +1957,15 @@ pub fn db_serialize_transaction_ex<'a>(
         if let Some(value) = msg.get_value() {
             balance_delta.add(&SignedCurrencyCollection::from_cc(value)?);
         }
-        // IHR fee is added to account balance if IHR is not used or to total fees if message
-        // delivered through IHR
+        // IHR fee is added to account balance if IHR is not used or to total fees if
+        // message delivered through IHR
         if let Some((ihr_fee, _)) = get_msg_fees(&msg) {
             balance_delta.grams += ihr_fee.as_u128();
         }
         address_from_message = msg.dst_ref().cloned();
 
         if msg.is_inbound_external() {
-            serialize_grams(
-                &mut map,
-                "ext_in_msg_fee",
-                &ext_in_msg_fee.unwrap_or_default(),
-                mode,
-            );
+            serialize_grams(&mut map, "ext_in_msg_fee", &ext_in_msg_fee.unwrap_or_default(), mode);
         }
     }
     let mut out_ids = vec![];
@@ -2241,16 +1996,10 @@ pub fn db_serialize_transaction_ex<'a>(
         serialize_field(&mut map, "account_addr", address.to_string());
         serialize_field(&mut map, "workchain_id", address.get_workchain_id());
     } else {
-        serialize_field(
-            &mut map,
-            "account_id",
-            set.transaction.account_id().as_hex_string(),
-        );
+        serialize_field(&mut map, "account_id", set.transaction.account_id().as_hex_string());
     }
     serialize_cc(&mut map, "total_fees", set.transaction.total_fees(), mode)?;
-    balance_delta.sub(&SignedCurrencyCollection::from_cc(
-        set.transaction.total_fees(),
-    )?);
+    balance_delta.sub(&SignedCurrencyCollection::from_cc(set.transaction.total_fees())?);
     serialize_scc(&mut map, "balance_delta", &balance_delta, mode);
     let state_update = set.transaction.read_state_update()?;
     serialize_id(&mut map, "old_hash", Some(&state_update.old_hash));
@@ -2338,26 +2087,13 @@ pub fn db_serialize_account_ex(
         serialize_field(&mut map, "last_paid", storage_stat.last_paid());
         serialize_u64(&mut map, "bits", &storage_stat.used().bits(), mode);
         serialize_u64(&mut map, "cells", &storage_stat.used().cells(), mode);
-        serialize_u64(
-            &mut map,
-            "public_cells",
-            &storage_stat.used().public_cells(),
-            mode,
-        );
+        serialize_u64(&mut map, "public_cells", &storage_stat.used().public_cells(), mode);
         if let Some(grams) = storage_stat.due_payment() {
             serialize_grams(&mut map, "due_payment", grams, mode);
         }
     }
-    serialize_lt(
-        &mut map,
-        "last_trans_lt",
-        &set.account.last_tr_time().unwrap_or_default(),
-        mode,
-    );
-    set.account
-        .balance()
-        .map(|cc| serialize_cc(&mut map, "balance", cc, mode))
-        .transpose()?;
+    serialize_lt(&mut map, "last_trans_lt", &set.account.last_tr_time().unwrap_or_default(), mode);
+    set.account.balance().map(|cc| serialize_cc(&mut map, "balance", cc, mode)).transpose()?;
     match set.account.status() {
         AccountStatus::AccStateActive => {
             if let Some(state) = set.account.state_init() {
@@ -2462,8 +2198,9 @@ pub fn db_serialize_message_ex(
     let mut map = Map::new();
     serialize_field(&mut map, "json_version", VERSION);
     serialize_id(&mut map, id_str, Some(&set.id));
-    // isn't needed there - because message should be fully immutable from source block to destination one
-    //serialize_id(&mut map, "block_id", set.block_id.as_ref());
+    // isn't needed there - because message should be fully immutable from source
+    // block to destination one serialize_id(&mut map, "block_id",
+    // set.block_id.as_ref());
     serialize_id(&mut map, "transaction_id", set.transaction_id.as_ref());
     if let Some(proof) = &set.proof {
         serialize_field(&mut map, "proof", base64::encode(proof));
@@ -2589,19 +2326,10 @@ pub fn db_serialize_block_proof_ex(
     let virt_block = Block::construct_from_cell(block_virt_root)?;
     let block_info = virt_block.read_info()?;
 
-    map.insert(
-        "gen_utime".to_string(),
-        block_info.gen_utime().as_u32().into(),
-    );
+    map.insert("gen_utime".to_string(), block_info.gen_utime().as_u32().into());
     map.insert("seq_no".to_string(), block_info.seq_no().into());
-    map.insert(
-        "workchain_id".to_string(),
-        block_info.shard().workchain_id().into(),
-    );
-    map.insert(
-        "shard".to_string(),
-        block_info.shard().shard_prefix_as_str_with_tag().into(),
-    );
+    map.insert("workchain_id".to_string(), block_info.shard().workchain_id().into());
+    map.insert("shard".to_string(), block_info.shard().shard_prefix_as_str_with_tag().into());
     serialize_cell(&mut map, "proof", Some(&proof.root), false)?;
 
     if let Some(signatures) = proof.signatures.as_ref() {
@@ -2609,23 +2337,15 @@ pub fn db_serialize_block_proof_ex(
             "validator_list_hash_short".to_string(),
             signatures.validator_info.validator_list_hash_short.into(),
         );
-        map.insert(
-            "catchain_seqno".to_string(),
-            signatures.validator_info.catchain_seqno.into(),
-        );
-        serialize_u64(
-            &mut map,
-            "sig_weight",
-            &signatures.pure_signatures.weight(),
-            mode,
-        );
+        map.insert("catchain_seqno".to_string(), signatures.validator_info.catchain_seqno.into());
+        serialize_u64(&mut map, "sig_weight", &signatures.pure_signatures.weight(), mode);
 
         let mut signs = Vec::new();
         signatures.pure_signatures.signatures().iterate_slices(
             |_key, mut value| -> Result<bool> {
-                signs.push(serialize_crypto_signature(
-                    &CryptoSignaturePair::construct_from(&mut value)?,
-                )?);
+                signs.push(serialize_crypto_signature(&CryptoSignaturePair::construct_from(
+                    &mut value,
+                )?)?);
                 Ok(true)
             },
         )?;
@@ -2665,41 +2385,19 @@ pub fn db_serialize_shard_state_ex(
     serialize_field(&mut map, "workchain_id", set.workchain_id);
     serialize_field(&mut map, "boc", base64::encode(&set.boc));
     serialize_field(&mut map, "global_id", set.state.global_id());
-    serialize_field(
-        &mut map,
-        "shard",
-        set.state.shard().shard_prefix_as_str_with_tag(),
-    );
+    serialize_field(&mut map, "shard", set.state.shard().shard_prefix_as_str_with_tag());
     serialize_field(&mut map, "seq_no", set.state.seq_no());
     serialize_field(&mut map, "vert_seq_no", set.state.vert_seq_no());
     serialize_field(&mut map, "gen_utime", set.state.gen_time());
     serialize_lt(&mut map, "gen_lt", &set.state.gen_lt(), mode);
     serialize_field(&mut map, "min_ref_mc_seqno", set.state.min_ref_mc_seqno());
     serialize_field(&mut map, "before_split", set.state.before_split());
-    serialize_u64(
-        &mut map,
-        "overload_history",
-        &set.state.overload_history(),
-        mode,
-    );
-    serialize_u64(
-        &mut map,
-        "underload_history",
-        &set.state.underload_history(),
-        mode,
-    );
+    serialize_u64(&mut map, "overload_history", &set.state.overload_history(), mode);
+    serialize_u64(&mut map, "underload_history", &set.state.underload_history(), mode);
     serialize_cc(&mut map, "total_balance", set.state.total_balance(), mode)?;
-    serialize_cc(
-        &mut map,
-        "total_validator_fees",
-        set.state.total_validator_fees(),
-        mode,
-    )?;
+    serialize_cc(&mut map, "total_validator_fees", set.state.total_validator_fees(), mode)?;
     if let Some(block_info) = set.state.master_ref() {
-        map.insert(
-            "master_ref".to_string(),
-            serialize_block_ref(&block_info.master, None, mode),
-        );
+        map.insert("master_ref".to_string(), serialize_block_ref(&block_info.master, None, mode));
     }
     if let Some(master) = set.state.read_custom()? {
         serialize_mc_state_extra(&mut map, "master", &master, mode)?;

@@ -1,41 +1,108 @@
-/*
- * Copyright (C) 2019-2022 TON Labs. All Rights Reserved.
- *
- * Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at:
- *
- * https://www.ton.dev/licenses
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific TON DEV software governing permissions and limitations
- * under the License.
- */
+// Copyright (C) 2019-2022 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at:
+//
+// https://www.ton.dev/licenses
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
 
-use serde_json::{Map, Value};
 use std::convert::TryInto;
 use std::str::FromStr;
-use tvm_api::ton::ton_node::{rempmessagestatus, RempMessageLevel, RempMessageStatus, RempReceipt};
+
+use serde_json::Map;
+use serde_json::Value;
+use tvm_api::ton::ton_node::rempmessagestatus;
+use tvm_api::ton::ton_node::RempMessageLevel;
+use tvm_api::ton::ton_node::RempMessageStatus;
+use tvm_api::ton::ton_node::RempReceipt;
 use tvm_api::IntoBoxed;
-use tvm_block::{
-    Account, Augmentation, BlockCreateFees, BlockIdExt, BlockLimits, CatchainConfig, ConfigParam0,
-    ConfigParam1, ConfigParam10, ConfigParam11, ConfigParam12, ConfigParam13, ConfigParam14,
-    ConfigParam15, ConfigParam16, ConfigParam17, ConfigParam18, ConfigParam18Map, ConfigParam2,
-    ConfigParam29, ConfigParam3, ConfigParam31, ConfigParam32, ConfigParam33, ConfigParam34,
-    ConfigParam35, ConfigParam36, ConfigParam37, ConfigParam39, ConfigParam4, ConfigParam40,
-    ConfigParam5, ConfigParam6, ConfigParam7, ConfigParam8, ConfigParam9, ConfigParamEnum,
-    ConfigParams, ConfigProposalSetup, ConsensusConfig, CryptoSignature, CurrencyCollection,
-    DelectorParams, Deserializable, ExtraCurrencyCollection, FundamentalSmcAddresses,
-    GasLimitsPrices, GlobalVersion, Grams, HashmapAugType, LibDescr, MandatoryParams, McStateExtra,
-    MsgAddressInt, MsgForwardPrices, ParamLimits, Serializable, ShardAccount, ShardIdent,
-    ShardStateUnsplit, SigPubKey, SlashingConfig, StoragePrices, SuspendedAddresses,
-    ValidatorDescr, ValidatorKeys, ValidatorSet, ValidatorSignedTempKey, ValidatorTempKey,
-    WorkchainDescr, WorkchainFormat, WorkchainFormat0, WorkchainFormat1, Workchains,
-    MASTERCHAIN_ID, SHARD_FULL,
-};
-use tvm_types::{error, fail, read_single_root_boc, Result, UInt256};
+use tvm_block::Account;
+use tvm_block::Augmentation;
+use tvm_block::BlockCreateFees;
+use tvm_block::BlockIdExt;
+use tvm_block::BlockLimits;
+use tvm_block::CatchainConfig;
+use tvm_block::ConfigParam0;
+use tvm_block::ConfigParam1;
+use tvm_block::ConfigParam10;
+use tvm_block::ConfigParam11;
+use tvm_block::ConfigParam12;
+use tvm_block::ConfigParam13;
+use tvm_block::ConfigParam14;
+use tvm_block::ConfigParam15;
+use tvm_block::ConfigParam16;
+use tvm_block::ConfigParam17;
+use tvm_block::ConfigParam18;
+use tvm_block::ConfigParam18Map;
+use tvm_block::ConfigParam2;
+use tvm_block::ConfigParam29;
+use tvm_block::ConfigParam3;
+use tvm_block::ConfigParam31;
+use tvm_block::ConfigParam32;
+use tvm_block::ConfigParam33;
+use tvm_block::ConfigParam34;
+use tvm_block::ConfigParam35;
+use tvm_block::ConfigParam36;
+use tvm_block::ConfigParam37;
+use tvm_block::ConfigParam39;
+use tvm_block::ConfigParam4;
+use tvm_block::ConfigParam40;
+use tvm_block::ConfigParam5;
+use tvm_block::ConfigParam6;
+use tvm_block::ConfigParam7;
+use tvm_block::ConfigParam8;
+use tvm_block::ConfigParam9;
+use tvm_block::ConfigParamEnum;
+use tvm_block::ConfigParams;
+use tvm_block::ConfigProposalSetup;
+use tvm_block::ConsensusConfig;
+use tvm_block::CryptoSignature;
+use tvm_block::CurrencyCollection;
+use tvm_block::DelectorParams;
+use tvm_block::Deserializable;
+use tvm_block::ExtraCurrencyCollection;
+use tvm_block::FundamentalSmcAddresses;
+use tvm_block::GasLimitsPrices;
+use tvm_block::GlobalVersion;
+use tvm_block::Grams;
+use tvm_block::HashmapAugType;
+use tvm_block::LibDescr;
+use tvm_block::MandatoryParams;
+use tvm_block::McStateExtra;
+use tvm_block::MsgAddressInt;
+use tvm_block::MsgForwardPrices;
+use tvm_block::ParamLimits;
+use tvm_block::Serializable;
+use tvm_block::ShardAccount;
+use tvm_block::ShardIdent;
+use tvm_block::ShardStateUnsplit;
+use tvm_block::SigPubKey;
+use tvm_block::SlashingConfig;
+use tvm_block::StoragePrices;
+use tvm_block::SuspendedAddresses;
+use tvm_block::ValidatorDescr;
+use tvm_block::ValidatorKeys;
+use tvm_block::ValidatorSet;
+use tvm_block::ValidatorSignedTempKey;
+use tvm_block::ValidatorTempKey;
+use tvm_block::WorkchainDescr;
+use tvm_block::WorkchainFormat;
+use tvm_block::WorkchainFormat0;
+use tvm_block::WorkchainFormat1;
+use tvm_block::Workchains;
+use tvm_block::MASTERCHAIN_ID;
+use tvm_block::SHARD_FULL;
+use tvm_types::error;
+use tvm_types::fail;
+use tvm_types::read_single_root_boc;
+use tvm_types::Result;
+use tvm_types::UInt256;
 
 trait ParseJson {
     fn as_uint256(&self) -> Result<UInt256>;
@@ -48,15 +115,13 @@ trait ParseJson {
 
 impl ParseJson for Value {
     fn as_uint256(&self) -> Result<UInt256> {
-        self.as_str()
-            .ok_or_else(|| error!("field is not str"))?
-            .parse()
+        self.as_str().ok_or_else(|| error!("field is not str"))?.parse()
     }
+
     fn as_base64(&self) -> Result<Vec<u8>> {
-        Ok(base64::decode(
-            self.as_str().ok_or_else(|| error!("field is not str"))?,
-        )?)
+        Ok(base64::decode(self.as_str().ok_or_else(|| error!("field is not str"))?)?)
     }
+
     fn as_int(&self) -> Result<i32> {
         match self.as_i64() {
             Some(v) => Ok(v as i32),
@@ -66,6 +131,7 @@ impl ParseJson for Value {
             },
         }
     }
+
     fn as_uint(&self) -> Result<u32> {
         match self.as_u64() {
             Some(v) => Ok(v as u32),
@@ -75,6 +141,7 @@ impl ParseJson for Value {
             },
         }
     }
+
     fn as_long(&self) -> Result<i64> {
         match self.as_i64() {
             Some(v) => Ok(v),
@@ -84,6 +151,7 @@ impl ParseJson for Value {
             },
         }
     }
+
     fn as_ulong(&self) -> Result<u64> {
         match self.as_u64() {
             Some(v) => Ok(v),
@@ -103,23 +171,18 @@ struct PathMap<'m, 'a> {
 
 impl<'m, 'a> PathMap<'m, 'a> {
     fn new(map: &'m Map<String, Value>) -> Self {
-        Self {
-            map,
-            path: vec!["root"],
-        }
+        Self { map, path: vec!["root"] }
     }
+
     fn cont(prev: &Self, name: &'a str, value: &'m Value) -> Result<Self> {
         let map = value.as_object().ok_or_else(|| {
-            error!(
-                "{}/{} must be the vector of objects",
-                prev.path.join("/"),
-                name
-            )
+            error!("{}/{} must be the vector of objects", prev.path.join("/"), name)
         })?;
         let mut path = prev.path.clone();
         path.push(name);
         Ok(Self { map, path })
     }
+
     fn get_item(&self, name: &'a str) -> Result<&'m Value> {
         let item = self
             .map
@@ -127,6 +190,7 @@ impl<'m, 'a> PathMap<'m, 'a> {
             .ok_or_else(|| error!("{} must have the field `{}`", self.path.join("/"), name))?;
         Ok(item)
     }
+
     fn get_obj(&self, name: &'a str) -> Result<Self> {
         let map = self
             .get_item(name)?
@@ -136,35 +200,28 @@ impl<'m, 'a> PathMap<'m, 'a> {
         path.push(name);
         Ok(Self { map, path })
     }
+
     fn get_vec(&self, name: &'a str) -> Result<&'m Vec<Value>> {
         self.get_item(name)?
             .as_array()
             .ok_or_else(|| error!("{}/{} must be the vector", self.path.join("/"), name))
     }
+
     fn get_str(&self, name: &'a str) -> Result<&'m str> {
         self.get_item(name)?
             .as_str()
             .ok_or_else(|| error!("{}/{} must be the string", self.path.join("/"), name))
     }
+
     fn get_uint256(&self, name: &'a str) -> Result<UInt256> {
         self.get_str(name)?.parse().map_err(|err| {
-            error!(
-                "{}/{} must be the uint256 in hex format : {}",
-                self.path.join("/"),
-                name,
-                err
-            )
+            error!("{}/{} must be the uint256 in hex format : {}", self.path.join("/"), name, err)
         })
     }
+
     fn get_base64(&self, name: &'a str) -> Result<Vec<u8>> {
-        base64::decode(self.get_str(name)?).map_err(|err| {
-            error!(
-                "{}/{} must be the base64 : {}",
-                self.path.join("/"),
-                name,
-                err
-            )
-        })
+        base64::decode(self.get_str(name)?)
+            .map_err(|err| error!("{}/{} must be the base64 : {}", self.path.join("/"), name, err))
     }
 
     fn get_num(&self, name: &'a str) -> Result<i64> {
@@ -211,11 +268,7 @@ impl<'m, 'a> PathMap<'m, 'a> {
                 }
             }
         }
-        fail!(
-            "{}/{} must be the integer or a string with the integer",
-            self.path.join("/"),
-            name
-        )
+        fail!("{}/{} must be the integer or a string with the integer", self.path.join("/"), name)
     }
 
     fn get_grams(&self, name: &'a str) -> Result<Grams> {
@@ -250,11 +303,7 @@ impl<'m, 'a> PathMap<'m, 'a> {
                 });
             }
         }
-        fail!(
-            "{}/{} must be the integer or a string with the integer",
-            self.path.join("/"),
-            name
-        )
+        fail!("{}/{} must be the integer or a string with the integer", self.path.join("/"), name)
     }
 
     #[allow(dead_code)]
@@ -263,9 +312,11 @@ impl<'m, 'a> PathMap<'m, 'a> {
             *value = new_value as u32;
         }
     }
+
     fn get_num16(&self, name: &'a str) -> Result<u16> {
         Ok(self.get_num(name)? as u16)
     }
+
     fn get_bool(&self, name: &'a str) -> Result<bool> {
         self.get_item(name)?
             .as_bool()
@@ -373,8 +424,7 @@ impl StateParser {
         match config.get_vec(&p) {
             Ok(vec) => {
                 let mut params = MandatoryParams::default();
-                vec.iter()
-                    .try_for_each(|n| params.set(&n.as_uint()?, &()))?;
+                vec.iter().try_for_each(|n| params.set(&n.as_uint()?, &()))?;
                 Ok(Some(params))
             }
             Err(err) => {
@@ -405,14 +455,10 @@ impl StateParser {
 
     fn parse_block_limits(&mut self, config: &PathMap) -> Result<()> {
         self.parse_parameter(config, 22, |p| {
-            Ok(ConfigParamEnum::ConfigParam22(
-                Self::parse_block_limits_struct(p)?,
-            ))
+            Ok(ConfigParamEnum::ConfigParam22(Self::parse_block_limits_struct(p)?))
         })?;
         self.parse_parameter(config, 23, |p| {
-            Ok(ConfigParamEnum::ConfigParam23(
-                Self::parse_block_limits_struct(p)?,
-            ))
+            Ok(ConfigParamEnum::ConfigParam23(Self::parse_block_limits_struct(p)?))
         })
     }
 
@@ -429,14 +475,10 @@ impl StateParser {
 
     fn parse_msg_forward_prices(&mut self, config: &PathMap) -> Result<()> {
         self.parse_parameter(config, 24, |p| {
-            Ok(ConfigParamEnum::ConfigParam24(
-                Self::parse_msg_forward_prices_struct(p)?,
-            ))
+            Ok(ConfigParamEnum::ConfigParam24(Self::parse_msg_forward_prices_struct(p)?))
         })?;
         self.parse_parameter(config, 25, |p| {
-            Ok(ConfigParamEnum::ConfigParam25(
-                Self::parse_msg_forward_prices_struct(p)?,
-            ))
+            Ok(ConfigParamEnum::ConfigParam25(Self::parse_msg_forward_prices_struct(p)?))
         })
     }
 
@@ -457,14 +499,10 @@ impl StateParser {
 
     fn parse_gas_limits(&mut self, config: &PathMap) -> Result<()> {
         self.parse_parameter(config, 20, |p| {
-            Ok(ConfigParamEnum::ConfigParam20(
-                Self::parse_gas_limits_struct(p)?,
-            ))
+            Ok(ConfigParamEnum::ConfigParam20(Self::parse_gas_limits_struct(p)?))
         })?;
         self.parse_parameter(config, 21, |p| {
-            Ok(ConfigParamEnum::ConfigParam21(
-                Self::parse_gas_limits_struct(p)?,
-            ))
+            Ok(ConfigParamEnum::ConfigParam21(Self::parse_gas_limits_struct(p)?))
         })
     }
 
@@ -493,16 +531,12 @@ impl StateParser {
         if let Some(mandatory_params) = self.parse_param_set_params(config, 9)? {
             self.extra
                 .config
-                .set_config(ConfigParamEnum::ConfigParam9(ConfigParam9 {
-                    mandatory_params,
-                }))?;
+                .set_config(ConfigParamEnum::ConfigParam9(ConfigParam9 { mandatory_params }))?;
         }
         if let Some(critical_params) = self.parse_param_set_params(config, 10)? {
             self.extra
                 .config
-                .set_config(ConfigParamEnum::ConfigParam10(ConfigParam10 {
-                    critical_params,
-                }))?;
+                .set_config(ConfigParamEnum::ConfigParam10(ConfigParam10 { critical_params }))?;
         }
         Ok(())
     }
@@ -609,9 +643,9 @@ impl StateParser {
     fn parse_validator_set(config: &PathMap) -> Result<ValidatorSet> {
         let utime_since = config.get_num("utime_since")? as u32;
         let utime_until = config.get_num("utime_until")? as u32;
-        //let total = config.get_num("total")? as u16;
+        // let total = config.get_num("total")? as u16;
         let main = config.get_num("main")? as u16;
-        //let total_weight = config.get_num("total_weight")? as u64;
+        // let total_weight = config.get_num("total_weight")? as u64;
 
         let mut list = Vec::default();
         config.get_vec("list").and_then(|p| {
@@ -659,14 +693,10 @@ impl StateParser {
             Ok(ConfigParamEnum::ConfigParam2(ConfigParam2 { minter_addr }))
         })?;
         self.parse_uint256(config, 3, |fee_collector_addr| {
-            Ok(ConfigParamEnum::ConfigParam3(ConfigParam3 {
-                fee_collector_addr,
-            }))
+            Ok(ConfigParamEnum::ConfigParam3(ConfigParam3 { fee_collector_addr }))
         })?;
         self.parse_uint256(config, 4, |dns_root_addr| {
-            Ok(ConfigParamEnum::ConfigParam4(ConfigParam4 {
-                dns_root_addr,
-            }))
+            Ok(ConfigParamEnum::ConfigParam4(ConfigParam4 { dns_root_addr }))
         })?;
         self.parse_uint256(config, 5, |owner_addr| {
             Ok(ConfigParamEnum::ConfigParam5(ConfigParam5 { owner_addr }))
@@ -755,11 +785,8 @@ impl StateParser {
 
         self.parse_array(config, 31, |p31| {
             let mut fundamental_smc_addr = FundamentalSmcAddresses::default();
-            p31.iter()
-                .try_for_each(|n| fundamental_smc_addr.set(&n.as_uint256()?, &()))?;
-            Ok(ConfigParamEnum::ConfigParam31(ConfigParam31 {
-                fundamental_smc_addr,
-            }))
+            p31.iter().try_for_each(|n| fundamental_smc_addr.set(&n.as_uint256()?, &()))?;
+            Ok(ConfigParamEnum::ConfigParam31(ConfigParam31 { fundamental_smc_addr }))
         })?;
 
         self.parse_parameter(config, 32, |p| {
@@ -803,9 +830,7 @@ impl StateParser {
                 p34.get_num("main")? as u16,
                 list,
             )?;
-            Ok(ConfigParamEnum::ConfigParam34(ConfigParam34 {
-                cur_validators,
-            }))
+            Ok(ConfigParamEnum::ConfigParam34(ConfigParam34 { cur_validators }))
         })?;
 
         self.parse_parameter(config, 35, |p| {
@@ -845,16 +870,12 @@ impl StateParser {
                     valid_until,
                 );
                 let sk = CryptoSignature::from_r_s(&signature_r, &signature_s)?;
-                validator_keys.set(
-                    &key,
-                    &ValidatorSignedTempKey::with_key_and_signature(pk, sk),
-                )?;
+                validator_keys
+                    .set(&key, &ValidatorSignedTempKey::with_key_and_signature(pk, sk))?;
                 Ok(())
             })?;
 
-            Ok(ConfigParamEnum::ConfigParam39(ConfigParam39 {
-                validator_keys,
-            }))
+            Ok(ConfigParamEnum::ConfigParam39(ConfigParam39 { validator_keys }))
         })?;
 
         let mut slashing_config = SlashingConfig::default();
@@ -863,34 +884,20 @@ impl StateParser {
                 "slashing_period_mc_blocks_count",
                 &mut slashing_config.slashing_period_mc_blocks_count,
             );
-            p40.get_u32(
-                "resend_mc_blocks_count",
-                &mut slashing_config.resend_mc_blocks_count,
-            );
+            p40.get_u32("resend_mc_blocks_count", &mut slashing_config.resend_mc_blocks_count);
             p40.get_u32("min_samples_count", &mut slashing_config.min_samples_count);
-            p40.get_u32(
-                "collations_score_weight",
-                &mut slashing_config.collations_score_weight,
-            );
-            p40.get_u32(
-                "signing_score_weight",
-                &mut slashing_config.signing_score_weight,
-            );
+            p40.get_u32("collations_score_weight", &mut slashing_config.collations_score_weight);
+            p40.get_u32("signing_score_weight", &mut slashing_config.signing_score_weight);
             p40.get_u32(
                 "min_slashing_protection_score",
                 &mut slashing_config.min_slashing_protection_score,
             );
             p40.get_u32("z_param_numerator", &mut slashing_config.z_param_numerator);
-            p40.get_u32(
-                "z_param_denominator",
-                &mut slashing_config.z_param_denominator,
-            );
+            p40.get_u32("z_param_denominator", &mut slashing_config.z_param_denominator);
         }
         self.extra
             .config
-            .set_config(ConfigParamEnum::ConfigParam40(ConfigParam40 {
-                slashing_config,
-            }))?;
+            .set_config(ConfigParamEnum::ConfigParam40(ConfigParam40 { slashing_config }))?;
 
         self.parse_parameter(config, 42, |p42| {
             let mut copyleft_config = tvm_block::ConfigCopyleft {
@@ -904,9 +911,7 @@ impl StateParser {
                     p.get_u32("license_type", &mut license_type);
                     let mut percent = 0;
                     p.get_u32("payout_percent", &mut percent);
-                    copyleft_config
-                        .license_rates
-                        .set(&(license_type as u8), &(percent as u8))?;
+                    copyleft_config.license_rates.set(&(license_type as u8), &(percent as u8))?;
                     Ok(())
                 })
             })?;
@@ -917,10 +922,8 @@ impl StateParser {
             let mut suspended = SuspendedAddresses::new();
 
             for address in p44 {
-                let address: MsgAddressInt = address
-                    .as_str()
-                    .ok_or_else(|| error!("address must be string"))?
-                    .parse()?;
+                let address: MsgAddressInt =
+                    address.as_str().ok_or_else(|| error!("address must be string"))?.parse()?;
                 suspended.add_suspended_address(
                     address.get_workchain_id(),
                     UInt256::construct_from(&mut address.address())?,
@@ -956,9 +959,7 @@ impl StateParser {
         }
 
         match map_path.get_grams("total_balance") {
-            Ok(balance) => self
-                .state
-                .set_total_balance(CurrencyCollection::from_grams(balance)),
+            Ok(balance) => self.state.set_total_balance(CurrencyCollection::from_grams(balance)),
             Err(err) => {
                 if self.mandatory_params != 0 {
                     return Err(err);
@@ -1047,11 +1048,9 @@ impl StateParser {
                 let lib = read_single_root_boc(lib)?;
                 let mut lib = LibDescr::new(lib);
                 let publishers = library.get_vec("publishers")?;
-                publishers
-                    .iter()
-                    .try_for_each::<_, Result<()>>(|publisher| {
-                        lib.publishers_mut().set(&publisher.as_uint256()?, &())
-                    })?;
+                publishers.iter().try_for_each::<_, Result<()>>(|publisher| {
+                    lib.publishers_mut().set(&publisher.as_uint256()?, &())
+                })?;
                 self.state.libraries_mut().set(&id, &lib)?;
                 Ok(())
             })?;
@@ -1253,9 +1252,7 @@ pub fn parse_block_proof(
         None
     };
 
-    Ok(tvm_block::BlockProof::with_params(
-        proof_for, root, signatures,
-    ))
+    Ok(tvm_block::BlockProof::with_params(proof_for, root, signatures))
 }
 
 #[cfg(test)]

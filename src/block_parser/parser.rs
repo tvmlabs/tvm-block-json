@@ -1,18 +1,33 @@
-use crate::block_parser::accounts::{AccountTransition, ParserAccounts};
-use crate::block_parser::block::{ParsedBlock, ParsingBlock};
-use crate::block_parser::entry::{get_sharding_depth, ParsedEntry};
-use crate::block_parser::transactions::ParserTransactions;
-use crate::block_parser::{
-    is_account_none, unix_time_to_system_time, ParserTraceEvent, ParserTracer,
-};
-use crate::JsonReducer;
-use serde_json::Value;
 use std::collections::BTreeMap;
-use tvm_block::{
-    Account, AccountBlock, AccountStatus, BlockIdExt, BlockProcessingStatus, BlockProof,
-    Deserializable, HashmapAugType, Transaction,
-};
-use tvm_types::{fail, HashmapType, Result, SliceData, UInt256};
+
+use serde_json::Value;
+use tvm_block::Account;
+use tvm_block::AccountBlock;
+use tvm_block::AccountStatus;
+use tvm_block::BlockIdExt;
+use tvm_block::BlockProcessingStatus;
+use tvm_block::BlockProof;
+use tvm_block::Deserializable;
+use tvm_block::HashmapAugType;
+use tvm_block::Transaction;
+use tvm_types::fail;
+use tvm_types::HashmapType;
+use tvm_types::Result;
+use tvm_types::SliceData;
+use tvm_types::UInt256;
+
+use crate::block_parser::accounts::AccountTransition;
+use crate::block_parser::accounts::ParserAccounts;
+use crate::block_parser::block::ParsedBlock;
+use crate::block_parser::block::ParsingBlock;
+use crate::block_parser::entry::get_sharding_depth;
+use crate::block_parser::entry::ParsedEntry;
+use crate::block_parser::is_account_none;
+use crate::block_parser::transactions::ParserTransactions;
+use crate::block_parser::unix_time_to_system_time;
+use crate::block_parser::ParserTraceEvent;
+use crate::block_parser::ParserTracer;
+use crate::JsonReducer;
 
 pub struct EntryConfig<R: JsonReducer> {
     pub sharding_depth: Option<u32>,
@@ -39,16 +54,14 @@ pub struct BlockParser<T: ParserTracer, R: JsonReducer> {
 impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
     pub fn new(config: BlockParserConfig<R>, tracer: Option<T>) -> Self {
         let block_sharding_depth = get_sharding_depth(&config.blocks);
-        Self {
-            config,
-            tracer,
-            block_sharding_depth,
-        }
+        Self { config, tracer, block_sharding_depth }
     }
 
     pub fn parse(&self, block: ParsingBlock, with_proofs: bool) -> Result<ParsedBlock> {
         if self.config.accounts.is_some() && block.shard_state.is_none() {
-            fail!("Shard state should be specified because the block parser was configured with account parsing.");
+            fail!(
+                "Shard state should be specified because the block parser was configured with account parsing."
+            );
         }
         let now = std::time::Instant::now();
 
@@ -71,11 +84,7 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
                 ParserTraceEvent::BlockCollated,
             );
         }
-        log::debug!(
-            "TIME: block deserialize {}ms;   {}",
-            now.elapsed().as_millis(),
-            block_id_str
-        );
+        log::debug!("TIME: block deserialize {}ms;   {}", now.elapsed().as_millis(), block_id_str);
 
         let mut result = ParsedBlock::new();
 
@@ -139,10 +148,7 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
                     Ok(true)
                 },
             )?;
-            log::debug!(
-                "TIME: prepare transactions order {}ms",
-                now.elapsed().as_millis()
-            );
+            log::debug!("TIME: prepare transactions order {}ms", now.elapsed().as_millis());
             let now = std::time::Instant::now();
 
             let mut index = 0;
@@ -169,22 +175,17 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
                 }
 
                 if include_transactions {
-                    result
-                        .transactions
-                        .push(transactions.prepare_transaction_entry(
-                            cell,
-                            transaction,
-                            workchain_id,
-                            transaction_order,
-                            &code_hash,
-                        )?);
+                    result.transactions.push(transactions.prepare_transaction_entry(
+                        cell,
+                        transaction,
+                        workchain_id,
+                        transaction_order,
+                        &code_hash,
+                    )?);
                 }
                 index += 1;
             }
-            log::debug!(
-                "TIME: prepare transactions and messages {}ms",
-                now.elapsed().as_millis()
-            );
+            log::debug!("TIME: prepare transactions and messages {}ms", now.elapsed().as_millis());
 
             if include_messages {
                 result.messages = transactions.finish_prepared_messages(prepared_messages)?;
@@ -203,21 +204,13 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
             result.block = Some(self.prepare_block_entry(&block, &block_order)?);
         }
 
-        log::debug!(
-            "TIME: prepare block {}ms;   {}",
-            now.elapsed().as_millis(),
-            block_id_str
-        );
+        log::debug!("TIME: prepare block {}ms;   {}", now.elapsed().as_millis(), block_id_str);
 
         if self.config.proofs.is_some() {
             if let Some(proof) = block.proof {
                 let now = std::time::Instant::now();
                 result.proof = Some(self.prepare_block_proof_entry(&block, proof, &block_order)?);
-                log::trace!(
-                    "TIME: block proof {}ms;   {}",
-                    now.elapsed().as_millis(),
-                    block.id
-                );
+                log::trace!("TIME: block proof {}ms;   {}", now.elapsed().as_millis(), block.id);
             }
         }
 

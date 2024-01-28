@@ -1,17 +1,32 @@
-use crate::block_parser::entry::get_sharding_depth;
-use crate::block_parser::{get_partition, is_minter_address};
-use crate::{
-    BlockParserConfig, BlockParsingError, EntryConfig, JsonReducer, ParsedEntry, ParserTraceEvent,
-    ParserTracer, ParsingBlock,
-};
-use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::time::SystemTime;
-use tvm_block::{
-    CommonMsgInfo, Deserializable, Message, MessageProcessingStatus, MsgAddressExt, Transaction,
-    TransactionProcessingStatus,
-};
-use tvm_types::{write_boc, Cell, Result, SliceData, UInt256};
+
+use serde_json::Map;
+use serde_json::Value;
+use tvm_block::CommonMsgInfo;
+use tvm_block::Deserializable;
+use tvm_block::Message;
+use tvm_block::MessageProcessingStatus;
+use tvm_block::MsgAddressExt;
+use tvm_block::Transaction;
+use tvm_block::TransactionProcessingStatus;
+use tvm_types::write_boc;
+use tvm_types::Cell;
+use tvm_types::Result;
+use tvm_types::SliceData;
+use tvm_types::UInt256;
+
+use crate::block_parser::entry::get_sharding_depth;
+use crate::block_parser::get_partition;
+use crate::block_parser::is_minter_address;
+use crate::BlockParserConfig;
+use crate::BlockParsingError;
+use crate::EntryConfig;
+use crate::JsonReducer;
+use crate::ParsedEntry;
+use crate::ParserTraceEvent;
+use crate::ParserTracer;
+use crate::ParsingBlock;
 
 pub struct PreparedMessage {
     doc: Map<String, Value>,
@@ -26,15 +41,15 @@ struct MessageAdditionalFields {
 }
 
 impl MessageAdditionalFields {
-    const SRC: Self = Self {
-        transaction_id: "src_transaction_id",
-        chain_order: "src_chain_order",
-        code_hash: "src_code_hash",
-    };
     const DST: Self = Self {
         transaction_id: "dst_transaction_id",
         chain_order: "dst_chain_order",
         code_hash: "dst_code_hash",
+    };
+    const SRC: Self = Self {
+        transaction_id: "src_transaction_id",
+        chain_order: "src_chain_order",
+        code_hash: "src_code_hash",
     };
 }
 
@@ -47,10 +62,7 @@ impl PreparedMessage {
         tr_chain_order: &Option<&str>,
         tr_code_hash: &Option<String>,
     ) {
-        self.doc.insert(
-            fields.transaction_id.to_owned(),
-            tr_id.as_hex_string().into(),
-        );
+        self.doc.insert(fields.transaction_id.to_owned(), tr_id.as_hex_string().into());
         if let Some(tr_chain_order) = tr_chain_order {
             self.doc.insert(
                 fields.chain_order.to_owned(),
@@ -58,8 +70,7 @@ impl PreparedMessage {
             );
         }
         if let Some(tr_code_hash) = tr_code_hash {
-            self.doc
-                .insert(fields.code_hash.to_owned(), tr_code_hash.clone().into());
+            self.doc.insert(fields.code_hash.to_owned(), tr_code_hash.clone().into());
         }
     }
 }
@@ -117,11 +128,7 @@ impl<'a, T: ParserTracer, R: JsonReducer> ParserTransactions<'a, T, R> {
 
                 let transaction_now = transaction.now();
                 self.prepare_message_entry(message_cell, message, Some(transaction_now))?
-            } else if message
-                .src_ref()
-                .map(|x| is_minter_address(x))
-                .unwrap_or(false)
-            {
+            } else if message.src_ref().map(|x| is_minter_address(x)).unwrap_or(false) {
                 self.prepare_message_entry(message_cell, message, None)?
             } else {
                 let (src_partition, dst_partition) =
@@ -131,11 +138,7 @@ impl<'a, T: ParserTracer, R: JsonReducer> ParserTransactions<'a, T, R> {
                 } else {
                     let mut doc = Map::with_capacity(4);
                     doc.insert("id".to_owned(), message_id.as_hex_string().into());
-                    PreparedMessage {
-                        src_partition,
-                        dst_partition,
-                        doc,
-                    }
+                    PreparedMessage { src_partition, dst_partition, doc }
                 }
             };
             prepared_message.set_additional_fields(
@@ -183,11 +186,7 @@ impl<'a, T: ParserTracer, R: JsonReducer> ParserTransactions<'a, T, R> {
         let now = std::time::Instant::now();
         let mut messages = Vec::with_capacity(prepared_messages.len());
         for (_, prepared_message) in prepared_messages {
-            let PreparedMessage {
-                doc,
-                src_partition,
-                dst_partition,
-            } = prepared_message;
+            let PreparedMessage { doc, src_partition, dst_partition } = prepared_message;
 
             messages.push(ParsedEntry::reduced(
                 doc.into(),
@@ -195,10 +194,7 @@ impl<'a, T: ParserTracer, R: JsonReducer> ParserTransactions<'a, T, R> {
                 self.messages_config,
             )?);
         }
-        log::debug!(
-            "TIME: prepare messages with chain_order {}ms",
-            now.elapsed().as_millis()
-        );
+        log::debug!("TIME: prepare messages with chain_order {}ms", now.elapsed().as_millis());
         Ok(messages)
     }
 
@@ -214,9 +210,7 @@ impl<'a, T: ParserTracer, R: JsonReducer> ParserTransactions<'a, T, R> {
         // parse message
         let boc = write_boc(&message_cell)?;
         let proof = if self.with_proofs {
-            Some(write_boc(
-                &message.prepare_proof(true, &self.parsing.root)?,
-            )?)
+            Some(write_boc(&message.prepare_proof(true, &self.parsing.root)?)?)
         } else {
             None
         };
@@ -231,17 +225,11 @@ impl<'a, T: ParserTracer, R: JsonReducer> ParserTransactions<'a, T, R> {
             transaction_now,
         };
         let mut doc = crate::db_serialize_message("id", &set)?;
-        doc.insert(
-            "block_id".to_owned(),
-            self.parsing.id.root_hash().as_hex_string().into(),
-        );
+        doc.insert("block_id".to_owned(), self.parsing.id.root_hash().as_hex_string().into());
 
-        Ok(PreparedMessage {
-            doc,
-            src_partition,
-            dst_partition,
-        })
+        Ok(PreparedMessage { doc, src_partition, dst_partition })
     }
+
     pub(crate) fn prepare_transaction_entry(
         &self,
         cell: Cell,
