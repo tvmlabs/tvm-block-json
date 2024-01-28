@@ -22,4 +22,6 @@ mod deserialize;
 pub use self::deserialize::*;
 pub use block_parser::*;
 
-include!("../common/src/info.rs");
+pub fn build_commit() -> Option<&'static str> {
+    std::option_env!("BUILD_GIT_COMMIT")
+}

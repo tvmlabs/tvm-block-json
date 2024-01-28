@@ -1,24 +1,24 @@
 [package]
-build = 'common/build/build.rs'
-edition = '2021'
-name = 'tvm_block_json'
-version = '0.7.207'
+edition = "2021"
+name = "tvm_block_json"
+rust-version = "1.75.0"
+version = "0.7.207"
 
 [dependencies]
-base64 = '0.13'
-failure = '0.1'
-hex = '0.4'
-lazy_static = '1.4.0'
-log = '^0.4'
-metrics = '0.21.0'
-num = '0.4'
-num-traits = '0.2'
-serde = '1.0'
-serde_derive = '1.0'
-serde_json = { features = [ 'preserve_order' ], version = '1.0' }
-tvm_api = { git = 'https://github.com/tvmlabs/tvm-tl.git', package = 'tvm_api', branch = "main" }
-tvm_block = { git = 'https://github.com/tvmlabs/tvm-block.git', branch = "main" }
-tvm_types = { git = 'https://github.com/tvmlabs/tvm-types.git', branch = "main" }
+base64 = "0.13"
+failure = "0.1"
+hex = "0.4"
+lazy_static = "1.4.0"
+log = "^0.4"
+metrics = "0.21.0"
+num = "0.4"
+num-traits = "0.2"
+serde = "1.0"
+serde_derive = "1.0"
+serde_json = { features = ["preserve_order"], version = "1.0" }
+tvm_api = { git = "https://github.com/tvmlabs/tvm-tl", package = "tvm_api", branch = "main" }
+tvm_block = { git = "https://github.com/tvmlabs/tvm-block", branch = "main" }
+tvm_types = { git = "https://github.com/tvmlabs/tvm-types", branch = "main" }
 
 [dev-dependencies]
-pretty_assertions = '1.3'
+pretty_assertions = "1.3"

@@ -1,28 +1,33 @@
-/*
- * Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
- *
- * Licensed under the SOFTWARE EVALUATION License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
- * License at:
- *
- * https://www.ton.dev/licenses
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific TON DEV software governing permissions and limitations
- * under the License.
- */
+// Copyright (C) 2019-2021 TON Labs. All Rights Reserved.
+//
+// Licensed under the SOFTWARE EVALUATION License (the "License"); you may not
+// use this file except in compliance with the License.  You may obtain a copy
+// of the License at:
+//
+// https://www.ton.dev/licenses
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific TON DEV software governing permissions and
+// limitations under the License.
+
+use std::fs::read;
+use std::path::Path;
+
+use pretty_assertions::assert_eq;
+use tvm_api::ton::ton_node::rempmessagestatus;
+use tvm_api::IntoBoxed;
+use tvm_block::generate_test_account_by_init_code_hash;
+use tvm_block::ShardStateUnsplit;
+use tvm_block::Transaction;
+use tvm_block::TransactionProcessingStatus;
+use tvm_types::read_single_root_boc;
+use tvm_types::write_boc;
+use tvm_types::AccountId;
+use tvm_types::IBitstring;
 
 use super::*;
-use pretty_assertions::assert_eq;
-use std::{fs::read, path::Path};
-use tvm_api::{ton::ton_node::rempmessagestatus, IntoBoxed};
-use tvm_block::{
-    generate_test_account_by_init_code_hash, ShardStateUnsplit, Transaction,
-    TransactionProcessingStatus,
-};
-use tvm_types::{read_single_root_boc, write_boc, AccountId, IBitstring};
 
 include!("./test_common.rs");
 
@@ -36,13 +41,8 @@ fn assert_json_eq_file(json: &str, name: &str) {
 fn test_account_into_json_without_hash_0() {
     let account = generate_test_account_by_init_code_hash(false);
     let boc = account.write_to_bytes().unwrap();
-    let sender = AccountSerializationSet {
-        account,
-        prev_code_hash: None,
-        boc,
-        boc1: None,
-        proof: None,
-    };
+    let sender =
+        AccountSerializationSet { account, prev_code_hash: None, boc, boc1: None, proof: None };
     let json = db_serialize_account("id", &sender).unwrap();
     println!("\n\n{:#}", serde_json::json!(json));
     assert_eq!(
@@ -123,13 +123,7 @@ fn test_account_into_json_with_hash_0() {
     let mut builder = BuilderData::new();
     account.write_original_format(&mut builder).unwrap();
     let boc1 = Some(write_boc(&builder.into_cell().unwrap()).unwrap());
-    let sender = AccountSerializationSet {
-        account,
-        prev_code_hash: None,
-        boc,
-        boc1,
-        proof: None,
-    };
+    let sender = AccountSerializationSet { account, prev_code_hash: None, boc, boc1, proof: None };
     let json = db_serialize_account("id", &sender).unwrap();
     println!("\n\n{:#}", serde_json::json!(json));
     assert_eq!(
@@ -209,13 +203,8 @@ fn test_account_into_json_with_hash_0() {
 fn test_account_into_json_q() {
     let account = generate_test_account_by_init_code_hash(false);
     let boc = account.write_to_bytes().unwrap();
-    let sender = AccountSerializationSet {
-        account,
-        prev_code_hash: None,
-        boc,
-        boc1: None,
-        proof: None,
-    };
+    let sender =
+        AccountSerializationSet { account, prev_code_hash: None, boc, boc1: None, proof: None };
     let json = db_serialize_account_ex("id", &sender, SerializationMode::QServer).unwrap();
     println!("\n\n{:#}", serde_json::json!(json));
     assert_eq!(
@@ -520,13 +509,8 @@ fn test_pruned_account_into_json_0() {
     .unwrap();
     let account = proof.virtualize().unwrap();
     let boc = proof.write_to_bytes().unwrap();
-    let sender = AccountSerializationSet {
-        account,
-        prev_code_hash: None,
-        boc,
-        boc1: None,
-        proof: None,
-    };
+    let sender =
+        AccountSerializationSet { account, prev_code_hash: None, boc, boc1: None, proof: None };
     let json = db_serialize_account("id", &sender).unwrap();
     println!("\n\n{:#}", serde_json::json!(json));
     assert_eq!(
@@ -615,9 +599,7 @@ fn test_message_into_json_0() {
     stinit.set_library_code(library.into_cell(), false).unwrap();
 
     msg.set_state_init(stinit);
-    msg.set_body(SliceData::new(vec![
-        0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF4,
-    ]));
+    msg.set_body(SliceData::new(vec![0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF4]));
 
     let cell = msg.serialize().unwrap();
     let boc = write_boc(&cell).unwrap();
@@ -678,9 +660,7 @@ fn test_message_into_json_q() {
     stinit.set_library_code(library.into_cell(), false).unwrap();
 
     msg.set_state_init(stinit);
-    msg.set_body(SliceData::new(vec![
-        0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF4,
-    ]));
+    msg.set_body(SliceData::new(vec![0x3F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xF4]));
 
     let cell = msg.serialize().unwrap();
     let boc = write_boc(&cell).unwrap();
@@ -1024,26 +1004,12 @@ fn test_json_block(blockhash: &str, mode: SerializationMode) {
 
     let block = Block::construct_from_cell(cell).unwrap();
     let id = block.hash().unwrap();
-    let block = BlockSerializationSet {
-        block,
-        id,
-        status: BlockProcessingStatus::Proposed,
-        boc,
-    };
+    let block = BlockSerializationSet { block, id, status: BlockProcessingStatus::Proposed, boc };
 
-    let json = format!(
-        "{:#}",
-        serde_json::json!(db_serialize_block_ex("id", &block, mode).unwrap())
-    );
-    let filename = format!(
-        "{}{}",
-        blockhash,
-        if let SerializationMode::QServer = mode {
-            "-Q"
-        } else {
-            ""
-        }
-    );
+    let json =
+        format!("{:#}", serde_json::json!(db_serialize_block_ex("id", &block, mode).unwrap()));
+    let filename =
+        format!("{}{}", blockhash, if let SerializationMode::QServer = mode { "-Q" } else { "" });
     assert_json_eq_file(&json, &filename);
 }
 
@@ -1083,10 +1049,10 @@ fn test_get_config() {
 }"#;
 
     assert_eq!(etalon, json);
-    /*if json != etalon {
-      std::fs::write("real_tvm_data/p12-config-param.json", &json).unwrap();
-      panic!("json != etalon")
-    }*/
+    // if json != etalon {
+    // std::fs::write("real_tvm_data/p12-config-param.json", &json).unwrap();
+    // panic!("json != etalon")
+    // }
 }
 
 #[test]
@@ -1199,9 +1165,8 @@ fn test_crafted_key_block_into_json() {
     let cp3 = ConfigParamEnum::ConfigParam3(ConfigParam3 {
         fee_collector_addr: UInt256::from([133; 32]),
     });
-    let cp4 = ConfigParamEnum::ConfigParam4(ConfigParam4 {
-        dns_root_addr: UInt256::from([144; 32]),
-    });
+    let cp4 =
+        ConfigParamEnum::ConfigParam4(ConfigParam4 { dns_root_addr: UInt256::from([144; 32]) });
     let cp6 = ConfigParamEnum::ConfigParam6(ConfigParam6 {
         mint_new_price: 123u64.into(),
         mint_add_price: 1458347523u64.into(),
@@ -1211,9 +1176,7 @@ fn test_crafted_key_block_into_json() {
         for i in 1..10u32 {
             mp.add_key(&i).unwrap();
         }
-        ConfigParam9 {
-            mandatory_params: mp,
-        }
+        ConfigParam9 { mandatory_params: mp }
     });
     let cp11 = ConfigParamEnum::ConfigParam11(get_config_param11());
 
@@ -1253,9 +1216,7 @@ fn test_crafted_key_block_into_json() {
 
     let mut suspended = SuspendedAddresses::new();
     suspended.add_suspended_address(0, UInt256::max()).unwrap();
-    suspended
-        .add_suspended_address(-1, UInt256::default())
-        .unwrap();
+    suspended.add_suspended_address(-1, UInt256::default()).unwrap();
     let cp44 = ConfigParamEnum::ConfigParam44(suspended);
 
     let mut extra = block.read_extra().unwrap();
@@ -1264,14 +1225,8 @@ fn test_crafted_key_block_into_json() {
     // Need to add prev_block_signatures
     let cs = CryptoSignature::from_r_s(&[1; 32], &[2; 32]).unwrap();
     let csp = CryptoSignaturePair::with_params(UInt256::from([12; 32]), cs.clone());
-    custom
-        .prev_blk_signatures_mut()
-        .set(&123_u16, &csp)
-        .unwrap();
-    custom
-        .prev_blk_signatures_mut()
-        .set(&345_u16, &csp)
-        .unwrap();
+    custom.prev_blk_signatures_mut().set(&123_u16, &csp).unwrap();
+    custom.prev_blk_signatures_mut().set(&345_u16, &csp).unwrap();
 
     // Need to add shard with FutureSplitMerge
     let sd = ShardDescr::with_params(
@@ -1279,10 +1234,7 @@ fn test_crafted_key_block_into_json() {
         17,
         25,
         UInt256::from_le_bytes(&[70]),
-        FutureSplitMerge::Split {
-            split_utime: 0x12345678,
-            interval: 0x87654321,
-        },
+        FutureSplitMerge::Split { split_utime: 0x12345678, interval: 0x87654321 },
     );
     let mut wc0 = custom.hashes().get(&0_u32).unwrap().unwrap();
     let mut key = tvm_types::BuilderData::new();
@@ -1312,12 +1264,7 @@ fn test_crafted_key_block_into_json() {
     block.write_extra(&extra).unwrap();
 
     let id = block.hash().unwrap();
-    let block = BlockSerializationSet {
-        block,
-        id,
-        status: BlockProcessingStatus::Proposed,
-        boc,
-    };
+    let block = BlockSerializationSet { block, id, status: BlockProcessingStatus::Proposed, boc };
 
     let json = db_serialize_block("id", &block).unwrap();
     let json = format!("{:#}", serde_json::json!(json));
@@ -1327,21 +1274,23 @@ fn test_crafted_key_block_into_json() {
 
 #[test]
 fn test_db_serialize_block_signatures() {
-    let doc = serde_json::to_string_pretty(&serde_json::json!(db_serialize_block_signatures(
-        "_id",
-        &UInt256::from([1; 32]),
-        &[
-            CryptoSignaturePair::with_params(
-                UInt256::from([2; 32]),
-                CryptoSignature::from_r_s(&[3; 32], &[4; 32]).unwrap()
-            ),
-            CryptoSignaturePair::with_params(
-                UInt256::from([5; 32]),
-                CryptoSignature::from_r_s(&[6; 32], &[7; 32]).unwrap()
-            )
-        ]
-    )
-    .unwrap()))
+    let doc = serde_json::to_string_pretty(&serde_json::json!(
+        db_serialize_block_signatures(
+            "_id",
+            &UInt256::from([1; 32]),
+            &[
+                CryptoSignaturePair::with_params(
+                    UInt256::from([2; 32]),
+                    CryptoSignature::from_r_s(&[3; 32], &[4; 32]).unwrap()
+                ),
+                CryptoSignaturePair::with_params(
+                    UInt256::from([5; 32]),
+                    CryptoSignature::from_r_s(&[6; 32], &[7; 32]).unwrap()
+                )
+            ]
+        )
+        .unwrap()
+    ))
     .unwrap();
 
     println!("{}", doc);
@@ -1414,10 +1363,9 @@ fn test_db_serialize_block_proof() {
 
     let proof = BlockProof::construct_from_cell(cell).unwrap();
 
-    let json = serde_json::to_string_pretty(&serde_json::json!(db_serialize_block_proof(
-        "_id", &proof
-    )
-    .unwrap()))
+    let json = serde_json::to_string_pretty(&serde_json::json!(
+        db_serialize_block_proof("_id", &proof).unwrap()
+    ))
     .unwrap();
 
     assert_json_eq_file(&json, "proof");
@@ -1431,18 +1379,9 @@ fn prepare_shard_state_json(name: &str, workchain_id: i32, mode: SerializationMo
 
     let state = ShardStateUnsplit::construct_from_cell(cell).unwrap();
 
-    let set = ShardStateSerializationSet {
-        state,
-        boc,
-        id,
-        block_id: None,
-        workchain_id,
-    };
+    let set = ShardStateSerializationSet { state, boc, id, block_id: None, workchain_id };
 
-    format!(
-        "{:#}",
-        serde_json::json!(db_serialize_shard_state_ex("id", &set, mode).unwrap())
-    )
+    format!("{:#}", serde_json::json!(db_serialize_shard_state_ex("id", &set, mode).unwrap()))
 }
 
 fn check_shard_state(name: &str, workchain_id: i32, mode: SerializationMode) {
@@ -1453,7 +1392,8 @@ fn check_shard_state(name: &str, workchain_id: i32, mode: SerializationMode) {
         SerializationMode::Standart => "",
         _ => panic!(),
     };
-    //std::fs::write(file_name.clone() + postfix + "-ethalon.json", &json).unwrap();
+    // std::fs::write(file_name.clone() + postfix + "-ethalon.json",
+    // &json).unwrap();
     let name = format!("states/{}{}", name, postfix);
     assert_json_eq_file(&json, &name);
 }
@@ -1461,25 +1401,25 @@ fn check_shard_state(name: &str, workchain_id: i32, mode: SerializationMode) {
 #[test]
 fn test_serialize_mc_zerostate_s() {
     check_shard_state(
-        "main_tvm_dev_zerostate_-1_D270B87B2952B5BA7DAA70AAF0A8C361BEFCF4D8D2DB92F9640D5443070838E4",
+        "main_ton_dev_zerostate_-1_D270B87B2952B5BA7DAA70AAF0A8C361BEFCF4D8D2DB92F9640D5443070838E4",
         -1,
-        SerializationMode::Standart
+        SerializationMode::Standart,
     );
 }
 
 #[test]
 fn test_serialize_mc_zerostate_q() {
     check_shard_state(
-        "main_tvm_dev_zerostate_-1_D270B87B2952B5BA7DAA70AAF0A8C361BEFCF4D8D2DB92F9640D5443070838E4",
+        "main_ton_dev_zerostate_-1_D270B87B2952B5BA7DAA70AAF0A8C361BEFCF4D8D2DB92F9640D5443070838E4",
         -1,
-        SerializationMode::QServer
+        SerializationMode::QServer,
     );
 }
 
 #[test]
 fn test_serialize_wc_zerostate_s() {
     check_shard_state(
-        "main_tvm_dev_zerostate_0_97AF4602A57FC884F68BB4659BAB8875DC1F5E45A9FD4FBAFD0C9BC10AA5067C",
+        "main_ton_dev_zerostate_0_97AF4602A57FC884F68BB4659BAB8875DC1F5E45A9FD4FBAFD0C9BC10AA5067C",
         0,
         SerializationMode::Standart,
     );
@@ -1488,7 +1428,7 @@ fn test_serialize_wc_zerostate_s() {
 #[test]
 fn test_serialize_wc_zerostate_q() {
     check_shard_state(
-        "main_tvm_dev_zerostate_0_97AF4602A57FC884F68BB4659BAB8875DC1F5E45A9FD4FBAFD0C9BC10AA5067C",
+        "main_ton_dev_zerostate_0_97AF4602A57FC884F68BB4659BAB8875DC1F5E45A9FD4FBAFD0C9BC10AA5067C",
         0,
         SerializationMode::QServer,
     );
@@ -1499,7 +1439,7 @@ fn test_serialize_wc_state_s() {
     check_shard_state(
         "state_4723_0_c800000000000000_81832210A895E93967B7D2A0638159FC5FD88C1DB402545AAAABA509BE93017F",
         0,
-        SerializationMode::Standart
+        SerializationMode::Standart,
     );
 }
 
@@ -1508,7 +1448,7 @@ fn test_serialize_wc_state_q() {
     check_shard_state(
         "state_4723_0_c800000000000000_81832210A895E93967B7D2A0638159FC5FD88C1DB402545AAAABA509BE93017F",
         0,
-        SerializationMode::QServer
+        SerializationMode::QServer,
     );
 }
 
@@ -1540,40 +1480,20 @@ fn check_transaction_field(
 #[test]
 fn test_balance_delta() {
     check_transaction_field("aborted_bounced.boc", "balance_delta", "000", "0x0");
-    check_transaction_field(
-        "ext_in&int_out.boc",
-        "balance_delta",
-        "-f8e11fafa9",
-        "-0x1ee05056",
-    );
+    check_transaction_field("ext_in&int_out.boc", "balance_delta", "-f8e11fafa9", "-0x1ee05056");
     check_transaction_field(
         "ext_in&int_out_special.boc",
         "balance_delta",
         "-f2d92301e7d945ff",
         "-0x26dcfe1826ba00",
     );
-    check_transaction_field(
-        "int_in.boc",
-        "balance_delta",
-        "0c71b149203e800",
-        "0x71b149203e800",
-    );
+    check_transaction_field("int_in.boc", "balance_delta", "0c71b149203e800", "0x71b149203e800");
 }
 
 #[test]
 fn test_ext_in_msg_fee() {
-    check_transaction_field(
-        "aborted_bounced.boc",
-        "ext_in_msg_fee",
-        Value::Null,
-        Value::Null,
-    );
-    check_transaction_field(
-        "ext_in&int_out.boc",
-        "ext_in_msg_fee",
-        "051c80e0",
-        "0x1c80e0",
-    );
+    check_transaction_field("aborted_bounced.boc", "ext_in_msg_fee", Value::Null, Value::Null);
+    check_transaction_field("ext_in&int_out.boc", "ext_in_msg_fee", "051c80e0", "0x1c80e0");
     check_transaction_field("ext_in&int_out_special.boc", "ext_in_msg_fee", "000", "0x0");
     check_transaction_field("int_in.boc", "ext_in_msg_fee", Value::Null, Value::Null);
 }
@@ -1674,23 +1594,15 @@ fn test_se_deserialise_remp_accepted() {
             block_id: BlockIdExt::with_params(
                 tvm_block::ShardIdent::with_tagged_prefix(0, 0x3800_0000_0000_0000).unwrap(),
                 1830539,
-                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
-                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
+                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
+                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
             )
             .into(),
             master_id: BlockIdExt::with_params(
                 tvm_block::ShardIdent::with_tagged_prefix(-1, 0x8000_0000_0000_0000).unwrap(),
                 1830539,
-                "18AFCD115BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
-                "18AFC2225BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
+                "18AFCD115BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
+                "18AFC2225BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
             )
             .into(),
         },
@@ -1704,12 +1616,8 @@ fn test_se_deserialise_remp_duplicate() {
             block_id: BlockIdExt::with_params(
                 tvm_block::ShardIdent::with_tagged_prefix(0, 0x3800_0000_0000_0000).unwrap(),
                 1830539,
-                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
-                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
+                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
+                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
             )
             .into(),
         },
@@ -1724,12 +1632,8 @@ fn test_se_deserialise_remp_ignored() {
             block_id: BlockIdExt::with_params(
                 tvm_block::ShardIdent::with_tagged_prefix(0, 0x3800_0000_0000_0000).unwrap(),
                 1830539,
-                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
-                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
+                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
+                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
             )
             .into(),
         },
@@ -1749,12 +1653,8 @@ fn test_se_deserialise_remp_rejected() {
             block_id: BlockIdExt::with_params(
                 tvm_block::ShardIdent::with_tagged_prefix(0, 0x3800_0000_0000_0000).unwrap(),
                 1830539,
-                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
-                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C"
-                    .parse()
-                    .unwrap(),
+                "18AFCDD25BE0989CE516504263EB356618A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
+                "18AFCDD25BE0989CE516554263EB351818A0FF8F6AB3689501C8E3B767EF413C".parse().unwrap(),
             )
             .into(),
             error: "eror 1 2 3".to_string(),
@@ -1765,10 +1665,7 @@ fn test_se_deserialise_remp_rejected() {
 #[test]
 fn test_se_deserialise_remp_sent() {
     se_deserialise_remp_status(RempMessageStatus::TonNode_RempSentToValidators(
-        rempmessagestatus::RempSentToValidators {
-            sent_to: 10,
-            total_validators: 11,
-        },
+        rempmessagestatus::RempSentToValidators { sent_to: 10, total_validators: 11 },
     ));
 }
 
