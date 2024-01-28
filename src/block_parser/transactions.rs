@@ -275,10 +275,8 @@ fn get_message_partitions(
         .map(|src| get_partition(sharding_depth, src))
         .transpose()?
         .flatten();
-    let dst_partition = msg_dst_slice(message)
-        .map(|dst| get_partition(sharding_depth, dst))
-        .transpose()?
-        .flatten();
+    let dst_partition =
+        msg_dst_slice(message).map(|dst| get_partition(sharding_depth, dst)).transpose()?.flatten();
     Ok((src_partition, dst_partition))
 }
 
