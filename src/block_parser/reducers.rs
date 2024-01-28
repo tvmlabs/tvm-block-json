@@ -19,12 +19,12 @@ struct ReduceConfig {
 impl ReduceConfig {
     pub fn parse_str(config: &str) -> Result<ReduceConfig> {
         let config = config.trim_start().trim_end();
-        let config = if config.starts_with("{") {
-            config.trim_start_matches("{").to_string()
+        let config = if config.starts_with('{') {
+            config.trim_start_matches('{').to_string()
         } else {
             format!("{}}}", config)
         };
-        let spaced = config.replace("{", " { ").replace("}", " } ");
+        let spaced = config.replace('{', " { ").replace('}', " } ");
 
         let fields = Self::collect_selection(&mut spaced.split_whitespace())?;
         Ok(ReduceConfig { fields })
@@ -36,9 +36,7 @@ impl ReduceConfig {
         while let Some(field) = iter.next() {
             if field == "{" {
                 if prev_name.is_empty() {
-                    return Err(BlockParsingError::InvalidData(format!(
-                        "unnamed subset selection"
-                    ))
+                    return Err(BlockParsingError::InvalidData("unnamed subset selection".to_string())
                     .into());
                 }
                 let inner = Self::collect_selection(iter)?;
@@ -49,7 +47,7 @@ impl ReduceConfig {
                     selection.push(Field::Scalar(prev_name.to_string()));
                 }
                 if selection.is_empty() {
-                    return Err(BlockParsingError::InvalidData(format!("empty selection")).into());
+                    return Err(BlockParsingError::InvalidData("empty selection".to_string()).into());
                 }
                 return Ok(selection);
             } else {
@@ -72,7 +70,7 @@ impl ReduceConfig {
                 prev_name = field;
             }
         }
-        Err(BlockParsingError::InvalidData(format!("mismatched square angle")).into())
+        Err(BlockParsingError::InvalidData("mismatched square angle".to_string()).into())
     }
 }
 

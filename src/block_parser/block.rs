@@ -14,6 +14,12 @@ pub struct ParsedBlock {
     pub messages: Vec<ParsedEntry>,
 }
 
+impl Default for ParsedBlock {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ParsedBlock {
     pub fn new() -> Self {
         Self {

@@ -68,7 +68,7 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
         let block_id_str = block.id.root_hash().as_hex_string();
 
         let block_order = if let Some(mc_seq_no) = block.mc_seq_no {
-            Some(crate::block_order(&block.block, mc_seq_no)?)
+            Some(crate::block_order(block.block, mc_seq_no)?)
         } else {
             None
         };
@@ -151,9 +151,8 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
             log::debug!("TIME: prepare transactions order {}ms", now.elapsed().as_millis());
             let now = std::time::Instant::now();
 
-            let mut index = 0;
             let mut prepared_messages = Default::default();
-            for (_, (cell, transaction)) in block_transactions.into_iter() {
+            for (index, (_, (cell, transaction))) in block_transactions.into_iter().enumerate() {
                 let transaction_order = block_order
                     .as_deref()
                     .map(|b_o| format!("{}{}", b_o, crate::u64_to_string(index as u64)));
@@ -183,7 +182,6 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
                         &code_hash,
                     )?);
                 }
-                index += 1;
             }
             log::debug!("TIME: prepare transactions and messages {}ms", now.elapsed().as_millis());
 
@@ -223,10 +221,10 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
         block_order: &Option<String>,
     ) -> Result<ParsedEntry> {
         let set = crate::BlockSerializationSetFH {
-            block: &block.block,
+            block: block.block,
             id: block.id.root_hash(),
             status: BlockProcessingStatus::Finalized,
-            boc: &*block.data,
+            boc: block.data,
             file_hash: Some(block.id.file_hash()),
         };
 
@@ -234,8 +232,8 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
         if let Some(block_order) = block_order {
             doc.insert("chain_order".to_owned(), Value::String(block_order.clone()));
         }
-        let partition = get_block_partition(self.block_sharding_depth, &block.id);
-        ParsedEntry::reduced(doc.into(), partition, &self.config.blocks)
+        let partition = get_block_partition(self.block_sharding_depth, block.id);
+        ParsedEntry::reduced(doc, partition, &self.config.blocks)
     }
 
     fn prepare_block_proof_entry(
@@ -244,12 +242,12 @@ impl<T: ParserTracer, R: JsonReducer> BlockParser<T, R> {
         proof: &BlockProof,
         block_order: &Option<String>,
     ) -> Result<ParsedEntry> {
-        let partition = get_block_partition(self.block_sharding_depth, &block.id);
+        let partition = get_block_partition(self.block_sharding_depth, block.id);
         let mut doc = crate::db_serialize_block_proof("id", proof)?;
         if let Some(chain_order) = block_order {
             doc.insert("chain_order".to_owned(), Value::String(chain_order.clone()));
         }
-        ParsedEntry::reduced(doc.into(), partition, &self.config.proofs)
+        ParsedEntry::reduced(doc, partition, &self.config.proofs)
     }
 
     pub fn prepare_account_entry(

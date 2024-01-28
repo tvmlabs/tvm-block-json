@@ -2121,7 +2121,7 @@ pub fn db_serialize_account_ex(
         serialize_field(&mut map, "proof", base64::encode(proof));
     }
     serialize_account_status(&mut map, "acc_type", &set.account.status(), mode);
-    serialize_id(&mut map, "prev_code_hash", (&set.prev_code_hash).as_ref());
+    serialize_id(&mut map, "prev_code_hash", set.prev_code_hash.as_ref());
     Ok(map)
 }
 
@@ -2150,7 +2150,7 @@ pub fn db_serialize_deleted_account_ex(
     serialize_field(&mut map, id_str, address.to_string());
     serialize_field(&mut map, "workchain_id", set.workchain_id);
     serialize_account_status(&mut map, "acc_type", &AccountStatus::AccStateNonexist, mode);
-    serialize_id(&mut map, "prev_code_hash", (&set.prev_code_hash).as_ref());
+    serialize_id(&mut map, "prev_code_hash", set.prev_code_hash.as_ref());
 
     Ok(map)
 }
