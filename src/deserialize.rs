@@ -120,7 +120,7 @@ impl ParseJson for Value {
     }
 
     fn as_base64(&self) -> Result<Vec<u8>> {
-        Ok(base64_decode(self.as_str().ok_or_else(|| error!("field is not str"))?)?)
+        base64_decode(self.as_str().ok_or_else(|| error!("field is not str"))?)
     }
 
     fn as_int(&self) -> Result<i32> {
