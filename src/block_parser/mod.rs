@@ -17,15 +17,16 @@ pub use parser::EntryConfig;
 pub use reducers::JsonFieldsReducer;
 use serde_json::Map;
 use serde_json::Value;
+use thiserror::Error;
 use tvm_block::MsgAddrStd;
 use tvm_block::MsgAddressInt;
 use tvm_types::Result;
 use tvm_types::SliceData;
 use tvm_types::UInt256;
 
-#[derive(Debug, failure::Fail)]
+#[derive(Debug, Error)]
 pub enum BlockParsingError {
-    #[fail(display = "Invalid data: {}", 0)]
+    #[error("Invalid data: {}", 0)]
     InvalidData(String),
 }
 
@@ -78,7 +79,7 @@ impl JsonReducer for NoReduce {
 pub fn unix_time_to_system_time(utime: u64) -> Result<SystemTime> {
     SystemTime::UNIX_EPOCH
         .checked_add(Duration::from_secs(utime))
-        .ok_or_else(|| failure::err_msg("Can't convert unix timestamp bytes to SystemTime"))
+        .ok_or_else(|| anyhow::anyhow!("Can't convert unix timestamp bytes to SystemTime"))
 }
 
 pub(crate) fn get_partition(

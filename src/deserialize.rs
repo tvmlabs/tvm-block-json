@@ -98,6 +98,7 @@ use tvm_block::WorkchainFormat1;
 use tvm_block::Workchains;
 use tvm_block::MASTERCHAIN_ID;
 use tvm_block::SHARD_FULL;
+use tvm_types::base64_decode;
 use tvm_types::error;
 use tvm_types::fail;
 use tvm_types::read_single_root_boc;
@@ -119,7 +120,7 @@ impl ParseJson for Value {
     }
 
     fn as_base64(&self) -> Result<Vec<u8>> {
-        Ok(base64::decode(self.as_str().ok_or_else(|| error!("field is not str"))?)?)
+        Ok(base64_decode(self.as_str().ok_or_else(|| error!("field is not str"))?)?)
     }
 
     fn as_int(&self) -> Result<i32> {
@@ -220,7 +221,7 @@ impl<'m, 'a> PathMap<'m, 'a> {
     }
 
     fn get_base64(&self, name: &'a str) -> Result<Vec<u8>> {
-        base64::decode(self.get_str(name)?)
+        base64_decode(self.get_str(name)?)
             .map_err(|err| error!("{}/{} must be the base64 : {}", self.path.join("/"), name, err))
     }
 
@@ -1211,7 +1212,7 @@ pub fn parse_block_proof(
 ) -> Result<tvm_block::BlockProof> {
     let map_path = PathMap::new(map);
 
-    let root = tvm_types::read_single_root_boc(base64::decode(map_path.get_str("proof")?)?)?;
+    let root = tvm_types::read_single_root_boc(base64_decode(map_path.get_str("proof")?)?)?;
 
     let merkle_proof = tvm_block::MerkleProof::construct_from_cell(root.clone())?;
     let block_virt_root = merkle_proof.proof.virtualize(1);
