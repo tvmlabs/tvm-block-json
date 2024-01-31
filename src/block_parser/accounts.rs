@@ -137,8 +137,9 @@ impl<'a, R: JsonReducer> ParserAccounts<'a, R> {
             now.elapsed().as_millis(),
             self.parsing.id
         );
-        metrics::histogram!("accounts_parsing_time", now.elapsed());
-        metrics::histogram!("parsed_accounts_count", self.changed.len() as f64);
+
+        metrics::histogram!("accounts_parsing_time").record(now.elapsed());
+        metrics::histogram!("parsed_accounts_count").record(self.changed.len() as f64);
 
         Ok(())
     }
